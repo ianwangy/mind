@@ -6,6 +6,28 @@
 
 **Languages / 语言**: [English](#english) · [中文](#中文)
 
+## 🚀 Live demo / 在线体验
+
+| Page | URL |
+|---|---|
+| Mind Studio (landing) | https://ianwangy.github.io/mind/ |
+| **Intent Fabric prototype** | https://ianwangy.github.io/mind/ux-prototype.html |
+| Scenario editor | https://ianwangy.github.io/mind/scenario-editor.html |
+| Reading view | https://ianwangy.github.io/mind/mind-reader.html |
+| L2 topography (standalone) | https://ianwangy.github.io/mind/semantic-topography-v2.html |
+
+> **First-time setup / 初次使用** — Click the ⚙ **Settings** button on any page and paste your own LLM API key. The repo ships with **no key**; calls fail until you set one.
+>
+> 点击页面上的 ⚙ **设置** 按钮，把你自己的 LLM API key 填进去。仓库**不内置任何 key**，未设置时调用会失败。
+>
+> Default endpoint is Alibaba Cloud DashScope's OpenAI-compatible API (`https://dashscope.aliyuncs.com/compatible-mode/v1`, model `qwen-plus`). Any OpenAI-compatible endpoint works — change `baseUrl` and `model` in the same Settings panel.
+>
+> 默认端点是阿里云 DashScope 的 OpenAI 兼容 API（`qwen-plus`）。任何 OpenAI 兼容端点都行 —— 在设置里改 `baseUrl` / `model` 即可。
+>
+> Your key is stored only in your browser's `localStorage`. Nothing is sent anywhere except the LLM endpoint you configure.
+>
+> 你的 key 只存在本机浏览器 `localStorage`，除了你自己配置的 LLM 端点之外不会发到任何地方。
+
 ---
 
 ## English
