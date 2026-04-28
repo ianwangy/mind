@@ -1,0 +1,3271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Intent Fabric · AI 原生 UX 四层原型</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #08070a;
+  --bg-2: #0f0e13;
+  --bg-3: #18161d;
+  --bg-4: #221f2a;
+  --ink: #f5f1e8;
+  --ink-dim: #8a857a;
+  --ink-dimmer: #4a4640;
+  --accent: #ff6b35;
+  --accent-2: #4ecdc4;
+  --accent-3: #ffd93d;
+  --danger: #d87070;
+  --good: #7dc98a;
+  --grid: rgba(245, 241, 232, 0.05);
+  --grid-strong: rgba(245, 241, 232, 0.12);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fraunces', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(78,205,196,0.05), transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(255,107,53,0.05), transparent 55%);
+  pointer-events: none; z-index: 0;
+}
+.hidden { display: none !important; }
+
+.scenario-banner {
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  padding: 10px 40px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--grid);
+}
+.scenario-banner.error {
+  background: rgba(216,112,112,0.12);
+  color: var(--danger);
+  border-bottom-color: rgba(216,112,112,0.3);
+}
+.scenario-banner.info {
+  background: rgba(78,205,196,0.08);
+  color: var(--accent-2);
+}
+.scenario-banner code {
+  background: rgba(255,255,255,0.08);
+  padding: 1px 6px;
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+/* ============ Header ============ */
+header {
+  padding: 22px 40px 0;
+  border-bottom: 1px solid var(--grid);
+  position: relative; z-index: 1;
+}
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px; flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+.title span { color: var(--accent); }
+.title em {
+  color: var(--accent-2);
+  font-style: normal; font-weight: 300;
+  font-size: 12px; letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: inline-block; margin-left: 10px;
+}
+.header-right { display: flex; gap: 12px; align-items: center; }
+.scenario-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 6px 12px;
+  border: 1px solid var(--grid-strong);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.scenario-badge:hover { border-color: var(--accent); color: var(--ink); }
+.scenario-badge span { color: var(--accent-3); }
+.scenario-badge .caret { margin-left: 6px; color: var(--ink-dimmer); }
+
+.scenario-pick-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: 'Fraunces', serif;
+  transition: all 0.15s;
+}
+.scenario-pick-card:hover:not([disabled]) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.scenario-pick-card[disabled] { opacity: 0.4; cursor: not-allowed; }
+.pick-label { font-size: 15px; margin-bottom: 4px; font-weight: 300; }
+.pick-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+}
+.pick-carry {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--grid);
+  display: flex; gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.pick-carry input { margin-top: 3px; }
+.pick-carry em { color: var(--accent-3); font-style: normal; }
+.settings-btn {
+  background: transparent;
+  border: 1px solid var(--grid-strong);
+  color: var(--ink-dim);
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ============ Breadcrumb ============ */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-bottom: 0;
+}
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  border-bottom: 2px solid transparent;
+  cursor: not-allowed;
+  transition: all 0.2s;
+  position: relative;
+}
+.crumb.visited { color: var(--ink-dim); cursor: pointer; }
+.crumb.visited:hover { color: var(--ink); }
+.crumb.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.crumb .num {
+  display: inline-flex;
+  width: 20px; height: 20px;
+  align-items: center; justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 10px;
+}
+.crumb.active .num { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.crumb-sep {
+  width: 40px; height: 1px;
+  background: var(--grid-strong);
+}
+
+/* ============ Layout with Crystal sidebar ============ */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 0;
+  position: relative; z-index: 1;
+  min-height: calc(100vh - 200px);
+}
+.pane-container { padding: 32px 40px; }
+.pane { display: none; }
+.pane.active { display: block; }
+
+.crystal {
+  border-left: 1px solid var(--grid);
+  padding: 28px 22px;
+  background: rgba(15, 14, 19, 0.6);
+  backdrop-filter: blur(2px);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+.crystal h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.crystal h4::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent-2);
+  border-radius: 50%;
+  animation: pulse 2.4s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.crystal-empty {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  color: var(--ink-dimmer);
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+.crystal-item {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--grid);
+}
+.crystal-item:last-child { border-bottom: none; }
+.crystal-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+.crystal-val {
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.crystal-val small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent-3);
+}
+
+/* ============ Modal (shared) ============ */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 32px;
+  width: 520px; max-width: 92vw;
+  border-radius: 2px;
+}
+.modal h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 300; font-style: italic;
+  margin-bottom: 6px;
+}
+.modal .modal-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+.form-row { margin-bottom: 16px; }
+.form-row label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.form-row input, .form-row textarea {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+}
+.form-row input:focus, .form-row textarea:focus { border-color: var(--accent); }
+.modal-actions {
+  display: flex; gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* ============ Shared buttons ============ */
+.btn {
+  background: var(--bg-2);
+  border: 1px solid var(--grid-strong);
+  color: var(--ink);
+  padding: 10px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) { background: var(--accent-3); border-color: var(--accent-3); color: var(--bg); }
+.btn.good {
+  color: var(--good);
+  border-color: rgba(125,201,138,0.3);
+}
+.btn.good:hover:not(:disabled) { background: rgba(125,201,138,0.1); }
+.btn.danger {
+  color: var(--danger);
+  border-color: rgba(216,112,112,0.3);
+}
+.btn.danger:hover:not(:disabled) { background: rgba(216,112,112,0.1); }
+.panel-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.panel-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.next-bar {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--grid);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.next-bar .hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+}
+
+/* ============ LAYER 1 · Socratic ============ */
+.ctx-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.ctx-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 14px;
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+.ctx-card .ctx-icon { font-size: 14px; flex-shrink: 0; }
+.ctx-card .ctx-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  margin-bottom: 4px;
+}
+.request-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.request-row textarea {
+  flex: 1;
+  min-height: 70px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 14px;
+  font-family: 'Fraunces', serif;
+  font-size: 15px;
+  border-radius: 2px;
+  outline: none;
+  resize: vertical;
+}
+.request-row textarea:focus { border-color: var(--accent-2); }
+
+.question-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 26px;
+  margin-bottom: 16px;
+  position: relative;
+  border-radius: 2px;
+  min-height: 120px;
+}
+.question-card::before {
+  content: 'Q';
+  position: absolute;
+  top: 12px; right: 18px;
+  font-family: 'Fraunces', serif;
+  font-size: 40px; font-style: italic;
+  color: var(--accent-2);
+  opacity: 0.22;
+  font-weight: 900;
+}
+.question-text {
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 300;
+  margin-bottom: 6px;
+}
+.reasoning-line {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-dimmer);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--grid);
+}
+.thinking-indicator {
+  display: flex; gap: 4px; align-items: center;
+  color: var(--ink-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+.thinking-indicator > * { flex-shrink: 0; }
+.thinking-indicator span {
+  width: 4px; height: 4px;
+  background: var(--accent-2);
+  border-radius: 50%;
+  animation: dot 1.2s infinite;
+  flex-shrink: 0;
+}
+.thinking-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+.answer-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.ans-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 14px 12px;
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  text-align: left;
+}
+.ans-btn:hover {
+  border-color: var(--accent-2);
+  background: var(--bg-3);
+  transform: translateY(-1px);
+}
+.ans-btn.custom-input {
+  display: flex; gap: 6px;
+  padding: 6px;
+}
+.ans-btn.custom-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  outline: none;
+  padding: 8px;
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+}
+.ans-btn.custom-input button {
+  background: var(--accent-2);
+  color: var(--bg);
+  border: none;
+  padding: 0 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.confidence-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  margin-bottom: 22px;
+}
+.confidence-bar {
+  flex: 1; height: 3px;
+  background: var(--bg-3);
+  margin: 0 14px;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  width: 0%;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.confidence-threshold {
+  position: absolute;
+  top: -3px; left: 75%;
+  width: 1px; height: 9px;
+  background: var(--accent-3);
+}
+.hpi-panel { margin-bottom: 16px; }
+.hpi-panel h5 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.hpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.hpi-card {
+  background: linear-gradient(135deg, rgba(255,217,61,0.05), transparent);
+  border: 1px solid rgba(255,217,61,0.2);
+  padding: 12px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.hpi-card:hover {
+  border-color: var(--accent-3);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(255,217,61,0.08);
+}
+.hpi-card .prob {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent-3);
+}
+.hpi-card .label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding-right: 40px;
+}
+.hpi-card .detail {
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+.l1-history {
+  margin-top: 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border: 1px dashed var(--grid);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.l1-history-item {
+  padding: 6px 0;
+  color: var(--ink-dim);
+  border-bottom: 1px dashed var(--grid);
+}
+.l1-history-item:last-child { border-bottom: none; }
+.l1-history-item .a {
+  color: var(--accent-2);
+  margin-left: 8px;
+}
+
+/* ============ LAYER 2 · Intent ============ */
+.l2-grid {
+  display: grid;
+  grid-template-columns: minmax(400px, 1fr) 1.1fr;
+  gap: 28px;
+}
+@media (max-width: 1100px) { .l2-grid { grid-template-columns: 1fr; } }
+
+.topography {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: min(100%, 55vh);
+  max-height: 55vh;
+  margin: 0 auto;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  cursor: crosshair;
+  overflow: hidden;
+  user-select: none;
+}
+.grid-lines {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 10% 10%;
+  pointer-events: none;
+}
+.heat {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255,217,61,0.20), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(255,107,53,0.20), transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(78,205,196,0.20), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(180,120,220,0.18), transparent 45%);
+  pointer-events: none;
+}
+.anchor {
+  position: absolute;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  pointer-events: none;
+  max-width: 42%;
+}
+.anchor.tl { top: 10px; left: 10px; }
+.anchor.tr { top: 10px; right: 10px; text-align: right; }
+.anchor.bl { bottom: 10px; left: 10px; }
+.anchor.br { bottom: 10px; right: 10px; text-align: right; }
+.cursor-dot {
+  position: absolute;
+  width: 18px; height: 18px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 24px rgba(255,107,53,0.6);
+  transition: background 0.2s, left 0.5s cubic-bezier(.4,0,.2,1), top 0.5s cubic-bezier(.4,0,.2,1);
+  z-index: 10;
+}
+.cursor-dot.loading { background: var(--accent-2); animation: pulseDot 0.8s infinite; }
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 24px rgba(78,205,196,0.6); }
+  50% { box-shadow: 0 0 40px rgba(78,205,196,0.9); }
+}
+.coords {
+  position: absolute;
+  bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  background: rgba(10,10,10,0.7);
+  padding: 4px 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 4;
+}
+.axes-config {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.axes-config label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.axes-config input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border-radius: 2px;
+  outline: none;
+}
+.axes-config input:focus { border-color: var(--accent); }
+
+.topo-output {
+  margin-top: 14px;
+  padding: 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  min-height: 90px;
+}
+.topo-output .descriptor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--accent-3);
+  margin-bottom: 10px;
+}
+.topo-output .text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  min-height: 40px;
+}
+
+.l2-right {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.section {
+  background: transparent;
+}
+.variant-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.variant-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 14px;
+  border-radius: 2px;
+  position: relative;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.variant-card.loading { opacity: 0.5; }
+.variant-card::before {
+  content: attr(data-label);
+  position: absolute;
+  top: 8px; right: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.2em;
+}
+.variant-card .v-direction {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--accent-2);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.variant-card .v-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 300;
+}
+.variant-card .v-actions {
+  display: flex; gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--grid);
+}
+.v-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--grid-strong);
+  color: var(--ink-dim);
+  padding: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.v-btn:hover { background: var(--accent-3); border-color: var(--accent-3); color: var(--bg); }
+
+.subtract-box {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 16px;
+  border-radius: 2px;
+}
+.subtract-empty {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  color: var(--ink-dimmer);
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+.subtract-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.chunk {
+  padding: 6px 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s;
+  max-width: 100%;
+}
+.chunk:hover { border-color: var(--ink-dim); }
+.chunk.keep {
+  background: rgba(125,201,138,0.12);
+  border-color: rgba(125,201,138,0.4);
+  color: var(--good);
+}
+.chunk.drop {
+  background: rgba(216,112,112,0.08);
+  border-color: rgba(216,112,112,0.3);
+  color: var(--danger);
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.subtract-actions {
+  display: flex; gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grid);
+}
+
+/* ============ LAYER 3 · Orchestration ============ */
+.l3-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 28px;
+}
+@media (max-width: 1100px) { .l3-layout { grid-template-columns: 1fr; } }
+.plan-banner {
+  background: linear-gradient(135deg, rgba(255,107,53,0.10), rgba(78,205,196,0.06));
+  border: 1px solid rgba(255,107,53,0.3);
+  padding: 16px 20px;
+  border-radius: 2px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.plan-banner .bn-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.step-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-left: 3px solid var(--grid-strong);
+  padding: 20px;
+  margin-bottom: 14px;
+  border-radius: 2px;
+  transition: border-color 0.2s;
+}
+.step-card.approved { border-left-color: var(--good); }
+.step-card.rejected { border-left-color: var(--danger); opacity: 0.55; }
+.step-card.executed { border-left-color: var(--accent); }
+.step-card.modifying { border-left-color: var(--accent-3); }
+.step-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.step-title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.step-title .num {
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.step-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+.step-status.approved { color: var(--good); }
+.step-status.rejected { color: var(--danger); }
+.step-status.executed { color: var(--accent); }
+.step-status.skipped { color: var(--ink-dimmer); }
+.step-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  margin-bottom: 12px;
+}
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border: 1px solid var(--grid-strong);
+  border-radius: 2px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  background: var(--bg-3);
+  transition: all 0.15s;
+}
+.chip:hover { color: var(--ink); border-color: var(--ink-dim); }
+.chip .chip-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ink-dimmer);
+  margin-right: 6px;
+}
+.chip.src { color: var(--accent-2); border-color: rgba(78,205,196,0.3); }
+.chip.asm { color: var(--accent-3); border-color: rgba(255,217,61,0.3); }
+.chip.perm { color: #c89fd9; border-color: rgba(200,159,217,0.3); }
+.step-expand {
+  display: none;
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(0,0,0,0.25);
+  border-left: 2px solid var(--accent-2);
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+.step-expand.open { display: block; }
+.step-expand small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  display: block;
+  margin-bottom: 4px;
+}
+.step-artifact {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-3);
+  border-left: 2px solid var(--accent);
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: 'Fraunces', serif;
+  color: var(--ink);
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.step-artifact small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: block;
+  margin-bottom: 6px;
+}
+.step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grid);
+}
+.step-actions .btn {
+  padding: 8px 14px;
+  font-size: 9px;
+}
+.step-modify-input {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--accent-3);
+  color: var(--ink);
+  padding: 10px;
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  border-radius: 2px;
+  outline: none;
+  margin-top: 10px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.l3-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.conflict-card {
+  padding: 14px;
+  background: rgba(216,112,112,0.05);
+  border: 1px solid rgba(216,112,112,0.25);
+  border-left: 3px solid var(--danger);
+  border-radius: 2px;
+}
+.conflict-card.info {
+  background: rgba(78,205,196,0.05);
+  border-color: rgba(78,205,196,0.25);
+  border-left-color: var(--accent-2);
+}
+.conflict-card .cf-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+.conflict-card.info .cf-label { color: var(--accent-2); }
+.conflict-card .cf-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.conflict-card .cf-actions { display: flex; gap: 6px; }
+.conflict-card .cf-actions .btn { padding: 6px 10px; font-size: 8px; }
+
+.receipt {
+  margin-top: 22px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(125,201,138,0.06), rgba(78,205,196,0.04));
+  border: 1px solid rgba(125,201,138,0.3);
+  border-radius: 2px;
+}
+.receipt h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--good);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.receipt-row {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--grid);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.receipt-row:last-child { border-bottom: none; }
+.receipt-row small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ============ LAYER 4 · Direct Manipulation ============ */
+.gantt {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  padding: 20px 0 14px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.gantt-header {
+  display: flex;
+  padding: 0 16px 10px;
+  margin-left: 180px;
+  border-bottom: 1px solid var(--grid);
+  position: relative;
+}
+.gantt-day-label {
+  flex: 1;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+}
+.gantt-row {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  border-bottom: 1px dashed var(--grid);
+  position: relative;
+}
+.gantt-row:last-child { border-bottom: none; }
+.gantt-label {
+  width: 180px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  border-right: 1px solid var(--grid);
+}
+.gantt-label .gnum {
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.gantt-label .reorder {
+  display: flex; flex-direction: column;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.gantt-label .reorder button {
+  width: 18px; height: 12px;
+  background: transparent;
+  border: 1px solid var(--grid-strong);
+  color: var(--ink-dim);
+  font-size: 8px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.gantt-label .reorder button:hover { color: var(--accent); border-color: var(--accent); }
+.gantt-track {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+.gantt-bar {
+  position: absolute;
+  top: 10px;
+  height: 30px;
+  background: linear-gradient(90deg, rgba(255,107,53,0.75), rgba(78,205,196,0.55));
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--ink);
+  user-select: none;
+  transition: box-shadow 0.15s;
+}
+.gantt-bar:hover { box-shadow: 0 0 18px rgba(255,107,53,0.4); }
+.gantt-bar.dragging { cursor: grabbing; z-index: 10; }
+.gantt-bar .bar-resize {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: rgba(0,0,0,0.2);
+}
+.gantt-bar .bar-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.gantt-bar .bar-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(245,241,232,0.7);
+  margin-left: 10px;
+  pointer-events: none;
+}
+
+.artifact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.artifact-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 14px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 120px;
+}
+.artifact-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.artifact-card .af-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.artifact-card .af-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  margin-bottom: 6px;
+}
+.artifact-card .af-preview {
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  max-height: 75px;
+  overflow: hidden;
+  position: relative;
+}
+.artifact-card .af-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 20px;
+  background: linear-gradient(transparent, var(--bg-2));
+}
+
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: none;
+}
+.drawer-backdrop.open { display: block; }
+.drawer {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: 520px; max-width: 92vw;
+  background: var(--bg-2);
+  border-left: 1px solid var(--grid);
+  z-index: 201;
+  padding: 28px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.drawer.open { transform: translateX(0); }
+.drawer h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.drawer .d-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 20px;
+}
+.drawer textarea {
+  width: 100%;
+  min-height: 380px;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 16px;
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  line-height: 1.6;
+  border-radius: 2px;
+  outline: none;
+  resize: vertical;
+}
+.drawer textarea:focus { border-color: var(--accent); }
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.source-expanded {
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(78,205,196,0.05);
+  border-left: 2px solid var(--accent-2);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  border-radius: 2px;
+}
+.source-expanded strong { color: var(--ink); }
+
+.l4-optimize-result {
+  background: var(--bg-2);
+  border: 1px solid var(--accent-3);
+  padding: 16px 20px;
+  border-radius: 2px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.l4-optimize-result .olabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--accent-3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.summary-panel {
+  background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(78,205,196,0.08));
+  border: 1px solid var(--accent);
+  padding: 32px;
+  text-align: center;
+  border-radius: 2px;
+  margin-top: 24px;
+}
+.summary-panel h3 {
+  font-size: 28px;
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+.summary-panel .meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  line-height: 1.8;
+}
+
+footer {
+  padding: 16px 40px 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-align: center;
+  border-top: 1px solid var(--grid);
+  position: relative;
+  z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="title">Intent <span>Fabric</span><em>AI-Native UX · 四层原型</em></div>
+    </div>
+    <div class="header-right">
+      <button class="scenario-badge" id="scenarioBtn" title="点击切换场景 / 意图不清晰时从 L1 重启">Scenario · <span id="scenarioLabel">—</span><span class="caret">▾</span></button>
+      <a class="settings-btn" href="scenario-editor.html" style="text-decoration:none">✎ 场景编辑器</a>
+      <button class="settings-btn" id="settingsBtn">⚙ 模型配置</button>
+    </div>
+  </div>
+  <div class="breadcrumb" id="breadcrumb">
+    <div class="crumb active" data-layer="1"><span class="num">1</span>引导 · Socratic</div>
+    <div class="crumb-sep"></div>
+    <div class="crumb" data-layer="2"><span class="num">2</span>意图 · Intent</div>
+    <div class="crumb-sep"></div>
+    <div class="crumb" data-layer="3"><span class="num">3</span>编排 · Orchestration</div>
+    <div class="crumb-sep"></div>
+    <div class="crumb" data-layer="4"><span class="num">4</span>操纵 · Manipulation</div>
+  </div>
+</header>
+
+<!-- Settings modal -->
+<div id="settingsModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>大语言模型配置</h3>
+    <div class="modal-sub">OpenAI-compatible Endpoint · 与 index.html 共享</div>
+    <div class="form-row">
+      <label>Base URL</label>
+      <input type="text" id="cfgBaseUrl" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1">
+    </div>
+    <div class="form-row">
+      <label>API Key</label>
+      <input type="password" id="cfgApiKey" placeholder="sk-...">
+    </div>
+    <div class="form-row">
+      <label>Model</label>
+      <input type="text" id="cfgModel" placeholder="qwen-plus">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cfgCancel">取消</button>
+      <button class="btn primary" id="cfgSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scenario Picker modal -->
+<div id="scenarioPicker" class="modal-backdrop hidden">
+  <div class="modal" style="width:560px">
+    <h3>↻ 切换 / 重启场景</h3>
+    <div class="modal-sub">当前层级遇到意图不清晰 · 作为独立场景从 L1 重新采访</div>
+
+    <div id="scenarioList"></div>
+
+    <label class="pick-carry">
+      <input type="checkbox" id="carrySeed" checked>
+      <span>
+        携带当前上下文作为新场景的<em>初始请求</em><br>
+        <span style="color:var(--ink-dimmer); font-size:11px">会把"来自某场景 · 原请求 · 当前层级发现的问题"拼成一条种子请求,预填到新 L1 的输入框</span>
+      </span>
+    </label>
+
+    <div class="modal-actions">
+      <a class="btn" href="scenario-editor.html" style="text-decoration:none">✨ 去编辑器新建 →</a>
+      <button class="btn" id="pickCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="pane-container">
+
+    <!-- ============ LAYER 1 ============ -->
+    <section id="layer1" class="pane active">
+      <div class="panel-label">Layer 1 · Socratic Scaffolding · 主动采访者</div>
+
+      <div class="ctx-cards" id="ctxCards"></div>
+
+      <div class="request-row">
+        <textarea id="requestInput" placeholder="模糊地描述你想要的..."></textarea>
+        <button class="btn primary" id="startInterviewBtn" style="align-self:stretch">开始采访 →</button>
+      </div>
+
+      <div id="interviewArea" class="hidden">
+        <div class="confidence-strip">
+          <span id="l1Round">Round 0</span>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="l1ConfidenceFill"></div>
+            <div class="confidence-threshold"></div>
+          </div>
+          <span id="l1ConfidenceText">意图清晰度: 0%</span>
+        </div>
+
+        <div class="question-card">
+          <div class="question-text" id="l1Question">
+            <div class="thinking-indicator">
+              <span></span><span></span><span></span>
+              <span style="margin-left:10px">读取上下文 · 构造诊断问题中</span>
+            </div>
+          </div>
+          <div class="reasoning-line" id="l1Reasoning" style="display:none"></div>
+        </div>
+
+        <div class="answer-buttons" id="l1AnswerButtons"></div>
+
+        <div class="hpi-panel" id="l1HpiPanel" style="display:none">
+          <h5>💡 高概率意图建议 · 点击直接采纳</h5>
+          <div class="hpi-cards" id="l1HpiCards"></div>
+        </div>
+
+        <div class="l1-history" id="l1HistoryList" style="display:none"></div>
+      </div>
+
+      <div class="next-bar">
+        <span class="hint">意图清晰度 ≥ 75% 时系统建议继续 · 你也可以随时推进</span>
+        <button class="btn primary" id="l1NextBtn" disabled>继续到意图层 →</button>
+      </div>
+    </section>
+
+    <!-- ============ LAYER 2 ============ -->
+    <section id="layer2" class="pane">
+      <div class="panel-label">Layer 2 · Intent Layer · 触觉意图探索</div>
+
+      <div class="l2-grid">
+        <div>
+          <div class="topography" id="topo">
+            <div class="heat"></div>
+            <div class="grid-lines"></div>
+            <div class="anchor tl" id="anchorTL">—</div>
+            <div class="anchor tr" id="anchorTR">—</div>
+            <div class="anchor bl" id="anchorBL">—</div>
+            <div class="anchor br" id="anchorBR">—</div>
+            <div class="cursor-dot" id="cursor" style="left:50%; top:50%"></div>
+            <div class="coords" id="coords">x: 0.50 · y: 0.50</div>
+          </div>
+          <div class="axes-config">
+            <div>
+              <label>X 轴 (左 / 右)</label>
+              <input id="xAxisInput" value="—">
+            </div>
+            <div>
+              <label>Y 轴 (下 / 上)</label>
+              <input id="yAxisInput" value="—">
+            </div>
+          </div>
+          <div class="topo-output">
+            <div class="descriptor" id="topoDescriptor">style: —</div>
+            <div class="text" id="topoText">拖动左侧光标,观察策略摘要随坐标变化 · 找到"感觉对了"的那个点</div>
+          </div>
+        </div>
+
+        <div class="l2-right">
+          <div class="section">
+            <div class="panel-label">Divergent · AB 变体</div>
+            <div class="variant-grid" id="variantGrid"></div>
+            <div style="margin-top:10px; display:flex; gap:8px">
+              <button class="btn" id="genVariantsBtn">↻ 生成四个变体</button>
+              <button class="btn" id="widerVariantsBtn">⤢ 扩大差异</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="panel-label">Subtractive Sculpting · 删减式塑造</div>
+            <div class="subtract-box">
+              <div class="subtract-empty" id="subtractEmpty">
+                点「生成大而全初稿」让 AI 提供一份完整版<br>
+                你的工作是<strong style="color:var(--danger)">划掉</strong>不要的 / <strong style="color:var(--good)">保留</strong>必要的
+              </div>
+              <div class="subtract-chips" id="subtractChips" style="display:none"></div>
+              <div class="subtract-actions">
+                <button class="btn" id="genDraftBtn">生成大而全初稿</button>
+                <button class="btn good" id="reshapeBtn" disabled>基于勾选重塑 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="next-bar">
+        <span class="hint">使用任一方式沉淀你的最终策略意图 · 进入编排时会携带当前状态</span>
+        <button class="btn primary" id="l2NextBtn">意图已清晰 · 进入编排 →</button>
+      </div>
+    </section>
+
+    <!-- ============ LAYER 3 ============ -->
+    <section id="layer3" class="pane">
+      <div class="panel-label">Layer 3 · Orchestration Surface · 协商与审计</div>
+
+      <div class="plan-banner">
+        <div class="bn-label">Proposed Plan</div>
+        <div id="l3BannerText">系统基于你的意图提议以下执行计划 · 每一步都展示数据来源、假设、需要的权限 · 请逐项审议</div>
+      </div>
+
+      <div class="l3-layout">
+        <div>
+          <div id="l3Steps">
+            <div class="thinking-indicator" style="padding:40px 0; justify-content:center">
+              <span></span><span></span><span></span>
+              <span style="margin-left:10px">根据意图生成执行计划中...</span>
+            </div>
+          </div>
+
+          <div id="l3Receipt" class="hidden"></div>
+        </div>
+
+        <div class="l3-sidebar">
+          <div class="panel-label">Collaboration Signals</div>
+          <div class="conflict-card" id="conflictA">
+            <div class="cf-label">⚠ 机构规则冲突</div>
+            <div class="cf-text" id="conflictAText">—</div>
+          </div>
+          <div class="conflict-card info" id="conflictB">
+            <div class="cf-label">ℹ AI 子代理建议</div>
+            <div class="cf-text" id="conflictBText">—</div>
+            <div class="cf-actions">
+              <button class="btn good" id="acceptConflictB">接纳</button>
+              <button class="btn" id="ignoreConflictB">忽略</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="next-bar">
+        <span class="hint" id="l3Hint">请逐项审议 · 批准/修改/拒绝 · 全部处理后可以执行</span>
+        <div style="display:flex; gap:10px">
+          <button class="btn" id="l3ExecuteBtn" disabled>执行全部已批准步骤</button>
+          <button class="btn primary" id="l3NextBtn" disabled>进入操纵层 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LAYER 4 ============ -->
+    <section id="layer4" class="pane">
+      <div class="panel-label">Layer 4 · Direct Manipulation · 操纵「计划」本身</div>
+
+      <div class="plan-banner" style="background:linear-gradient(135deg, rgba(245,241,232,0.05), rgba(78,205,196,0.04)); border-color: var(--grid-strong);">
+        <div class="bn-label" style="color: var(--ink-dim);">Fallback Layer</div>
+        <div>传统 GUI 作为颗粒度编辑的回退层 · 你操纵的不是原始控件,而是<strong style="color:var(--accent)">"计划"本身</strong>——拖任务、改时长、编辑产出</div>
+      </div>
+
+      <div class="panel-label">Timeline · 时间轴 (拖动条块改时间 · 右边缘改时长 · 侧边箭头重排)</div>
+      <div class="gantt" id="gantt">
+        <div class="gantt-header" id="ganttHeader"></div>
+        <div id="ganttBody"></div>
+      </div>
+
+      <div class="panel-label">Artifacts · 产出物 (点击任一卡片颗粒度编辑)</div>
+      <div class="artifact-grid" id="artifactGrid"></div>
+
+      <div id="l4OptimizeBox"></div>
+
+      <div id="l4Summary" class="hidden"></div>
+
+      <div class="next-bar">
+        <span class="hint">颗粒度编辑 · 拖拽调整 · 一切落到「操作收据」</span>
+        <div style="display:flex; gap:10px">
+          <button class="btn" id="optimizeBtn">🧠 优化交接 · 冲突检测</button>
+          <button class="btn primary" id="l4FinishBtn">完成旅程 · 总结</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Intent Crystal sidebar -->
+  <aside class="crystal" id="crystal">
+    <h4>Intent Crystal · 意图凝练</h4>
+    <div id="crystalContent">
+      <div class="crystal-empty">从 Layer 1 开始采访<br>你的意图会在这里逐步凝练</div>
+    </div>
+  </aside>
+</div>
+
+<!-- Artifact drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="drawer" id="drawer">
+  <h3 id="drawerTitle">—</h3>
+  <div class="d-sub" id="drawerSub">step artifact</div>
+  <textarea id="drawerText"></textarea>
+  <div id="drawerSources"></div>
+  <div class="drawer-actions">
+    <button class="btn" id="drawerCancel">关闭</button>
+    <button class="btn primary" id="drawerSave">保存修改</button>
+  </div>
+</aside>
+
+<footer>
+  四层贯穿同一任务 · AI 原生 UX 原型 · 所有 LLM 调用复用 index.html 的模型配置
+</footer>
+
+<script>
+/* ================================================================ */
+/* SCENARIO CONFIG · 把硬编码的领域知识集中到这里                     */
+/* 要换场景就只改这个对象(以及后续引入的 renderer/tool 插件)         */
+/* ================================================================ */
+const FALLBACK_SCENARIO = {
+  id: 'product-launch',
+  label: '产品发布策略',
+  taskName: '产品发布',       // 用于 prompt 里 "为产品发布任务生成..."
+  taskObject: '产品发布策略',  // 用于 prompt 里 "产品发布策略摘要"
+
+  defaultRequest: '帮我制定产品发布策略',
+
+  // Layer 1 · 环境感知卡(UI 展示)+ prompt 注入的精简版
+  contextCards: [
+    { icon: '📅', label: 'Calendar',       text: '下周四 14:00 · 团队 roadmap 评审' },
+    { icon: '🖥', label: 'Recent Screens', text: 'Linear 定价页 · Notion 竞品分析文档' },
+    { icon: '🕐', label: 'Habits',         text: '偏好简洁文档 · 常用"优先级 + 时间线"模板' }
+  ],
+  contextForPrompt: {
+    calendar: '下周四 14:00 团队 roadmap 评审',
+    screens:  'Linear 定价页, Notion 竞品分析',
+    habits:   '偏好简洁文档 · 优先级 + 时间线模板'
+  },
+
+  // Layer 1 · 意图 schema。Crystal 和 prompt 都会反射这个结构
+  intentSchema: {
+    goal:     '用一句话概括当前对目标的理解(16字内)',
+    audience: '目标对象(12字内,未知则空)',
+    horizon:  { label: '时间视野', hint: '预期的发布窗口', critical: true, type: 'enum', options: ['1 个月内', '1-3 个月', '3-6 个月', '半年以上'] },
+    priority: { label: '首要考量', hint: '本次发布最优先保护的目标', critical: true, type: 'enum', options: ['速度上线', '品牌势能', '成本控制', '风险防控', '用户体验'] }
+  },
+
+  // Layer 2 · 默认坐标轴(LLM 推轴失败时的 fallback)+ 给 LLM 的例子
+  defaultAxes: {
+    x: '即时收入 / 长期品牌',
+    y: '激进扩张 / 稳健防守'
+  },
+  axisExamples: '"即时收入 / 长期品牌","激进扩张 / 稳健防守"',
+
+  // Layer 2 · "大而全"初稿应覆盖的维度
+  draftSections: '目标受众定位、核心信息、时间线、主要渠道、风险控制、成功指标',
+
+  // Layer 3 · 计划生成参数
+  planSizeHint: '5-7 步',
+  planFlowHint: '调研 → 起草 → 审核 → 执行 → 度量',
+
+  // Layer 3 · 协作冲突 mock
+  conflicts: {
+    institutionalRule: '销售部规则要求：发布前须经法务审核。审计受限模式下,"法务"相关步骤无法跳过。',
+    subAgentSuggestion: {
+      text: '另一位代理建议同时启动 A/B 测试以度量效果。',
+      newStep: {
+        id: 'S-AB',
+        title: '并行 A/B 测试',
+        desc: '上线同时启动 A/B 测试,度量两种文案的转化差异',
+        sources: [{ name: '子代理建议', detail: '来自协同 AI 的并行测试提案' }],
+        assumptions: [{ key: '样本', value: '每组 ≥ 1k 用户' }],
+        permissions: ['接入 A/B 测试平台'],
+        duration_days: 7,
+        artifact_hint: 'A/B 测试计划与指标定义'
+      }
+    }
+  },
+
+  // Layer 4 · 时间轴刻度
+  timelineTotalDays: 30,
+  timelineDayStep: 5
+};
+
+/* 运行时 scenario 变量:先用 fallback,成功加载 md 后被替换 */
+let scenario = FALLBACK_SCENARIO;
+
+/* 从 scenarios/<id>.md 里解析出第一个 ```json``` 代码块作为配置
+   特例: id === '_preview' 时从 localStorage 读取(供 scenario-editor.html 试跑) */
+async function loadScenarioMd(id) {
+  if (id === '_preview') {
+    const raw = localStorage.getItem('scenarioPreview');
+    if (!raw) throw new Error('没有预览场景 · 请先在 scenario-editor.html 生成并点"试跑"');
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (e) { throw new Error(`预览场景 JSON 损坏: ${e.message}`); }
+    validateScenario(parsed);
+    return parsed;
+  }
+  const res = await fetch(`scenarios/${id}.md`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for scenarios/${id}.md`);
+  const md = await res.text();
+  const match = md.match(/```json\s*([\s\S]*?)```/);
+  if (!match) throw new Error(`scenarios/${id}.md 里找不到 \`\`\`json 代码块`);
+  let parsed;
+  try { parsed = JSON.parse(match[1]); }
+  catch (e) { throw new Error(`JSON 语法错误: ${e.message}`); }
+  validateScenario(parsed);
+  return parsed;
+}
+
+/* 把 intentSchema 两种写法(字符串简写 / 富对象)归一成统一结构
+   简写: "goal": "用一句话概括...(16字内)"
+   富形式: "goal": { label, hint, critical, type, options }  */
+function normalizeIntentSchema(raw) {
+  const out = {};
+  for (const [k, v] of Object.entries(raw || {})) {
+    if (typeof v === 'string') {
+      out[k] = { label: k, hint: v, critical: true, type: 'text', options: null };
+    } else if (v && typeof v === 'object') {
+      out[k] = {
+        label: v.label || k,
+        hint: v.hint || v.description || '',
+        critical: v.critical !== false,
+        type: v.type || 'text',
+        options: Array.isArray(v.options) ? v.options : null
+      };
+    }
+  }
+  return out;
+}
+
+function validateScenario(s) {
+  const required = [
+    'id', 'label', 'taskName', 'taskObject', 'defaultRequest',
+    'contextCards', 'contextForPrompt', 'intentSchema',
+    'defaultAxes', 'axisExamples', 'draftSections',
+    'planSizeHint', 'planFlowHint', 'conflicts',
+    'timelineTotalDays', 'timelineDayStep'
+  ];
+  const missing = required.filter(k => s[k] === undefined);
+  if (missing.length) throw new Error(`场景缺字段: ${missing.join(', ')}`);
+}
+
+function showScenarioBanner(html, kind) {
+  let el = document.getElementById('scenarioBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'scenarioBanner';
+    el.className = 'scenario-banner ' + (kind || 'error');
+    document.body.insertBefore(el, document.body.firstChild);
+  } else {
+    el.className = 'scenario-banner ' + (kind || 'error');
+  }
+  el.innerHTML = html;
+}
+
+/* 启动:加载 scenario md,失败则保留 fallback */
+async function bootstrap() {
+  const id = new URLSearchParams(location.search).get('scenario') || 'product-launch';
+  try {
+    const loaded = await loadScenarioMd(id);
+    scenario = loaded;
+    TOTAL_DAYS = scenario.timelineTotalDays;
+    DAY_STEP = scenario.timelineDayStep;
+    sessionState.context = scenario.contextForPrompt;
+  } catch (err) {
+    const hint = location.protocol === 'file:'
+      ? ' · 请用 HTTP 服务打开(如 <code>python -m http.server</code>) · 当前退回到内嵌 fallback 场景'
+      : ' · 当前退回到内嵌 fallback 场景 · 修正后刷新';
+    showScenarioBanner(`⚠ 场景加载失败: ${escapeHtml(err.message)}${hint}`, 'error');
+  }
+  applyScenarioToDom();
+  renderCrystal();
+}
+
+/* 根据 scenario 填充 DOM 中的占位 */
+function applyScenarioToDom() {
+  document.getElementById('scenarioLabel').textContent = scenario.label;
+  document.getElementById('requestInput').value = scenario.defaultRequest;
+  document.getElementById('ctxCards').innerHTML = scenario.contextCards.map(c => `
+    <div class="ctx-card">
+      <span class="ctx-icon">${c.icon}</span>
+      <div>
+        <div class="ctx-label">${c.label}</div>
+        ${c.text}
+      </div>
+    </div>`).join('');
+  document.getElementById('conflictAText').textContent = scenario.conflicts.institutionalRule;
+  document.getElementById('conflictBText').textContent = scenario.conflicts.subAgentSuggestion.text;
+}
+
+/* ================================================================ */
+/* SHARED: config + callLLM                                          */
+/* ================================================================ */
+const DEFAULT_CONFIG = {
+  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  apiKey: 'sk-a4a2434492444cc59f914134dcb28901',
+  model: 'qwen-plus'
+};
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mindReaderLLMConfig') || '{}');
+    return { ...DEFAULT_CONFIG, ...saved };
+  } catch { return { ...DEFAULT_CONFIG }; }
+}
+function saveConfig(cfg) {
+  localStorage.setItem('mindReaderLLMConfig', JSON.stringify(cfg));
+}
+let llmConfig = loadConfig();
+
+async function callLLM(prompt, { maxTokens = 800, jsonMode = false } = {}) {
+  const body = {
+    model: llmConfig.model,
+    max_tokens: maxTokens,
+    messages: [{ role: 'user', content: prompt }]
+  };
+  if (jsonMode) body.response_format = { type: 'json_object' };
+
+  const response = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${llmConfig.apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  return (data.choices?.[0]?.message?.content || '').trim();
+}
+
+function extractJSON(text) {
+  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  return JSON.parse(m ? m[0] : cleaned);
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Settings modal */
+const settingsModal = document.getElementById('settingsModal');
+const cfgBaseUrl = document.getElementById('cfgBaseUrl');
+const cfgApiKey = document.getElementById('cfgApiKey');
+const cfgModel = document.getElementById('cfgModel');
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  cfgBaseUrl.value = llmConfig.baseUrl;
+  cfgApiKey.value = llmConfig.apiKey;
+  cfgModel.value = llmConfig.model;
+  settingsModal.classList.remove('hidden');
+});
+document.getElementById('cfgCancel').addEventListener('click', () => settingsModal.classList.add('hidden'));
+document.getElementById('cfgSave').addEventListener('click', () => {
+  llmConfig = {
+    baseUrl: cfgBaseUrl.value.trim().replace(/\/$/, '') || DEFAULT_CONFIG.baseUrl,
+    apiKey: cfgApiKey.value.trim() || DEFAULT_CONFIG.apiKey,
+    model: cfgModel.value.trim() || DEFAULT_CONFIG.model
+  };
+  saveConfig(llmConfig);
+  settingsModal.classList.add('hidden');
+});
+
+/* ================================================================ */
+/* SESSION STATE                                                     */
+/* ================================================================ */
+const sessionState = {
+  currentLayer: 1,
+  visited: new Set([1]),
+  request: '',
+  context: scenario.contextForPrompt,
+  layer1: { intent_summary: null, confidence: 0, history: [] },
+  layer2: { axes: null, final_draft: '', cursor: { x: 0.5, y: 0.5 }, variants: [] },
+  layer3: { plan: [], receipt: null },
+  layer4: { timeline: [], optimizeResult: null }
+};
+
+/* ================================================================ */
+/* BREADCRUMB NAVIGATION                                             */
+/* ================================================================ */
+function gotoLayer(n) {
+  sessionState.visited.add(n);
+  sessionState.currentLayer = n;
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(`layer${n}`).classList.add('active');
+  document.querySelectorAll('.crumb').forEach(c => {
+    const layerNum = parseInt(c.dataset.layer);
+    c.classList.toggle('active', layerNum === n);
+    c.classList.toggle('visited', sessionState.visited.has(layerNum));
+  });
+  renderCrystal();
+  if (n === 3 && sessionState.layer3.plan.length === 0) generateL3Plan();
+  if (n === 4) renderL4();
+}
+document.querySelectorAll('.crumb').forEach(c => {
+  c.addEventListener('click', () => {
+    const layer = parseInt(c.dataset.layer);
+    if (sessionState.visited.has(layer)) gotoLayer(layer);
+  });
+});
+
+/* ================================================================ */
+/* INTENT CRYSTAL                                                    */
+/* ================================================================ */
+function renderCrystal() {
+  const el = document.getElementById('crystalContent');
+  const s = sessionState;
+  const items = [];
+  if (s.request) {
+    items.push(`<div class="crystal-item">
+      <div class="crystal-key">Raw Request</div>
+      <div class="crystal-val">${escapeHtml(s.request)}</div>
+    </div>`);
+  }
+  if (s.layer1.intent_summary) {
+    const nSchema = normalizeIntentSchema(scenario.intentSchema);
+    const sum = s.layer1.intent_summary;
+    const parts = Object.entries(sum).filter(([,v]) => v).map(([k,v]) => {
+      const spec = nSchema[k];
+      const label = spec?.label || k;
+      const mark = spec?.critical ? '🔑' : '○';
+      return `<div style="margin-bottom:4px"><small style="color:var(--ink-dimmer); font-family:'JetBrains Mono',monospace; font-size:9px">${mark} ${escapeHtml(label)}:</small> ${escapeHtml(v)}</div>`;
+    }).join('');
+    items.push(`<div class="crystal-item">
+      <div class="crystal-key">L1 · Intent <small>${s.layer1.confidence}%</small></div>
+      <div class="crystal-val">${parts}</div>
+    </div>`);
+  }
+  if (s.layer2.axes) {
+    items.push(`<div class="crystal-item">
+      <div class="crystal-key">L2 · Axes</div>
+      <div class="crystal-val">X: ${escapeHtml(s.layer2.axes.x)}<br>Y: ${escapeHtml(s.layer2.axes.y)}</div>
+    </div>`);
+  }
+  if (s.layer2.final_draft) {
+    const preview = s.layer2.final_draft.length > 140
+      ? s.layer2.final_draft.slice(0, 140) + '…'
+      : s.layer2.final_draft;
+    items.push(`<div class="crystal-item">
+      <div class="crystal-key">L2 · Strategy Draft</div>
+      <div class="crystal-val" style="font-size:12px">${escapeHtml(preview)}</div>
+    </div>`);
+  }
+  if (s.layer3.plan.length) {
+    const approved = s.layer3.plan.filter(p => p.status === 'approved' || p.status === 'executed').length;
+    const executed = s.layer3.plan.filter(p => p.status === 'executed').length;
+    items.push(`<div class="crystal-item">
+      <div class="crystal-key">L3 · Plan</div>
+      <div class="crystal-val">批准 ${approved}/${s.layer3.plan.length} · 执行 ${executed}</div>
+    </div>`);
+  }
+  el.innerHTML = items.length
+    ? items.join('')
+    : `<div class="crystal-empty">从 Layer 1 开始采访<br>你的意图会在这里逐步凝练</div>`;
+}
+
+/* ================================================================ */
+/* LAYER 1 · SOCRATIC SCAFFOLDING                                    */
+/* ================================================================ */
+const l1Question = document.getElementById('l1Question');
+const l1Reasoning = document.getElementById('l1Reasoning');
+const l1AnswerButtons = document.getElementById('l1AnswerButtons');
+const l1HpiPanel = document.getElementById('l1HpiPanel');
+const l1HpiCards = document.getElementById('l1HpiCards');
+const l1Round = document.getElementById('l1Round');
+const l1ConfidenceFill = document.getElementById('l1ConfidenceFill');
+const l1ConfidenceText = document.getElementById('l1ConfidenceText');
+const l1HistoryList = document.getElementById('l1HistoryList');
+const l1NextBtn = document.getElementById('l1NextBtn');
+
+document.getElementById('startInterviewBtn').addEventListener('click', () => {
+  sessionState.request = document.getElementById('requestInput').value.trim() || scenario.defaultRequest;
+  renderCrystal();
+  document.getElementById('interviewArea').classList.remove('hidden');
+  l1NextRound();
+});
+
+async function l1NextRound() {
+  const round = sessionState.layer1.history.length + 1;
+  l1Round.textContent = `Round ${round}`;
+  l1Question.innerHTML = `<div class="thinking-indicator"><span></span><span></span><span></span><span style="margin-left:10px">分析你的回答 · 构造下一个诊断问题</span></div>`;
+  l1Reasoning.style.display = 'none';
+  l1AnswerButtons.innerHTML = '';
+  l1HpiPanel.style.display = 'none';
+
+  const ctx = sessionState.context;
+  const historyText = sessionState.layer1.history.length === 0
+    ? '(还没有任何问答)'
+    : sessionState.layer1.history.map((h, i) => `第${i+1}轮 Q: ${h.q}\n     A: ${h.a}`).join('\n');
+
+  const nSchema = normalizeIntentSchema(scenario.intentSchema);
+  const schemaEntries = Object.entries(nSchema);
+  const schemaDesc = schemaEntries.map(([k, spec]) => {
+    const typeStr = (spec.type === 'enum' && spec.options)
+      ? `枚举 ∈ {${spec.options.join(' | ')}}`
+      : spec.type === 'number' ? '数字' : '文本';
+    const mark = spec.critical ? '🔑关键' : '○ 可选';
+    return `  - ${k} [${spec.label}] · ${mark} · ${typeStr}\n    约束: ${spec.hint}`;
+  }).join('\n');
+  const intentJsonFields = schemaEntries.map(([k, spec]) =>
+    `    "${k}": "${spec.hint.replace(/"/g, '\\"')}"`
+  ).join(',\n');
+
+  const prompt = `你是一个苏格拉底式 AI 助手,通过诊断性提问帮用户凿出真实意图。用户的模糊请求是:"${sessionState.request}"。
+
+你拥有的环境上下文:
+- 日历: ${ctx.calendar}
+- 最近屏幕: ${ctx.screens}
+- 历史习惯: ${ctx.habits}
+
+==== 本场景的意图 Schema(你要逐步填充这些字段)====
+${schemaDesc}
+
+==== 到此为止的问答历史 ====
+${historyText}
+
+==== 任务 ====
+基于以上输出 JSON(只输出 JSON,不要任何 markdown 或解释):
+
+{
+  "reasoning": "简述当前推理(30字内,中文)",
+  "intent_summary": {
+${intentJsonFields}
+  },
+  "next_focus_field": "下一轮要澄清的 schema key(优先🔑关键字段)",
+  "confidence": 0到100整数(对整体意图的把握度,以关键字段的填充度为主),
+  "question": "针对 next_focus_field 的诊断性问题(中文,一句话)",
+  "answer_options": ["选项1","选项2"],
+  "high_probability_intents": [
+    {"label":"高概率意图猜测", "detail":"一句话解释", "prob":0.42}
+  ],
+  "should_proceed": 所有🔑关键字段都已填好 或 已问超过5轮,
+  "stop_reason": "如果 should_proceed=true 说明为什么"
+}
+
+==== 原则 ====
+1. 每轮只聚焦 **一个** 字段(next_focus_field) · 优先🔑关键字段 · 多个都不清时挑分辨率最高的
+2. 若 focus 字段是枚举类型,answer_options 应直接用该字段的可选值(加 "其他/不确定" 兜底)
+3. 若 focus 字段是文本,answer_options 给 2-4 个真正二分的选项,不要泛泛
+4. ○ 可选字段可以空字符串,不要为了填而问
+5. intent_summary 基于历史已确定内容填充,未知留空字符串,不要瞎编
+6. 充分利用环境上下文(日历/屏幕/习惯)预判,high_probability_intents 给 2-3 个`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 1400, jsonMode: true });
+    const result = extractJSON(text);
+
+    // 枚举反射: 若 focus 字段是 enum 且 LLM 没充分用 schema 的 options,用 schema options 覆盖
+    const focusSpec = result.next_focus_field && nSchema[result.next_focus_field];
+    if (focusSpec && focusSpec.type === 'enum' && focusSpec.options) {
+      const llmOpts = Array.isArray(result.answer_options) ? result.answer_options : [];
+      if (llmOpts.length < focusSpec.options.length / 2) {
+        result.answer_options = [...focusSpec.options, '其他 / 不确定'];
+      }
+    }
+
+    l1Question.textContent = result.question || '(无问题)';
+    if (result.reasoning) {
+      l1Reasoning.style.display = 'block';
+      l1Reasoning.textContent = '// ' + result.reasoning;
+    }
+    sessionState.layer1.intent_summary = result.intent_summary;
+    sessionState.layer1.confidence = result.confidence || 0;
+    l1ConfidenceFill.style.width = `${result.confidence}%`;
+    l1ConfidenceText.textContent = `意图清晰度: ${result.confidence}%`;
+
+    renderL1AnswerButtons(result.answer_options || [], result.question);
+    renderL1Hpi(result.high_probability_intents || []);
+    renderL1History();
+    renderCrystal();
+
+    if (result.confidence >= 75 || result.should_proceed) {
+      l1NextBtn.disabled = false;
+    }
+  } catch (err) {
+    l1Question.textContent = `出错: ${err.message} · 检查模型配置`;
+    console.error(err);
+  }
+}
+
+function renderL1AnswerButtons(options, question) {
+  l1AnswerButtons.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'ans-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleL1Answer(question, opt));
+    l1AnswerButtons.appendChild(btn);
+  });
+  // 自定义输入
+  const custom = document.createElement('div');
+  custom.className = 'ans-btn custom-input';
+  custom.innerHTML = `<input placeholder="自定义回答..." /><button>发送</button>`;
+  const inp = custom.querySelector('input');
+  const snd = custom.querySelector('button');
+  const send = () => { if (inp.value.trim()) handleL1Answer(question, inp.value.trim()); };
+  snd.addEventListener('click', send);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  l1AnswerButtons.appendChild(custom);
+}
+
+function handleL1Answer(q, a) {
+  sessionState.layer1.history.push({ q, a });
+  l1NextRound();
+}
+
+function renderL1Hpi(intents) {
+  if (!intents.length) { l1HpiPanel.style.display = 'none'; return; }
+  l1HpiPanel.style.display = 'block';
+  l1HpiCards.innerHTML = intents.map((it, i) => `
+    <div class="hpi-card" data-i="${i}">
+      <span class="prob">${Math.round((it.prob || 0) * 100)}%</span>
+      <div class="label">${escapeHtml(it.label || '')}</div>
+      <div class="detail">${escapeHtml(it.detail || '')}</div>
+    </div>
+  `).join('');
+  l1HpiCards.querySelectorAll('.hpi-card').forEach((card, i) => {
+    card.addEventListener('click', () => {
+      handleL1Answer('[采纳高概率意图]', intents[i].label + ' · ' + (intents[i].detail || ''));
+    });
+  });
+}
+
+function renderL1History() {
+  const h = sessionState.layer1.history;
+  if (!h.length) { l1HistoryList.style.display = 'none'; return; }
+  l1HistoryList.style.display = 'block';
+  l1HistoryList.innerHTML = h.map((it, i) =>
+    `<div class="l1-history-item">${i+1}. ${escapeHtml(it.q)}<span class="a">→ ${escapeHtml(it.a)}</span></div>`
+  ).join('');
+  l1HistoryList.scrollTop = l1HistoryList.scrollHeight;
+}
+
+l1NextBtn.addEventListener('click', () => {
+  gotoLayer(2);
+  initLayer2();
+});
+
+/* ================================================================ */
+/* LAYER 2 · INTENT LAYER                                            */
+/* ================================================================ */
+const topo = document.getElementById('topo');
+const cursor = document.getElementById('cursor');
+const coords = document.getElementById('coords');
+const xAxisInput = document.getElementById('xAxisInput');
+const yAxisInput = document.getElementById('yAxisInput');
+const topoDescriptor = document.getElementById('topoDescriptor');
+const topoText = document.getElementById('topoText');
+const variantGrid = document.getElementById('variantGrid');
+const subtractEmpty = document.getElementById('subtractEmpty');
+const subtractChips = document.getElementById('subtractChips');
+const reshapeBtn = document.getElementById('reshapeBtn');
+const genDraftBtn = document.getElementById('genDraftBtn');
+const genVariantsBtn = document.getElementById('genVariantsBtn');
+const widerVariantsBtn = document.getElementById('widerVariantsBtn');
+
+let l2Inited = false;
+let topoPos = { x: 0.5, y: 0.5 };
+let topoDragging = false;
+let topoDebounce = null;
+let topoRequestId = 0;
+let divergentSpread = 0.3;
+let subtractChunks = [];
+
+async function initLayer2() {
+  if (l2Inited) return;
+  l2Inited = true;
+
+  // 1) 让 LLM 根据 Layer 1 建议坐标轴
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const prompt = `基于用户的${scenario.taskObject}意图: ${intentStr}
+
+给出 2 条正交的"张力轴",用于在 2D 拓扑图上探索差异化的方向。要求轴的两端是真正对立的概念。
+
+输出 JSON:
+{
+  "x_axis": "左端 / 右端",
+  "y_axis": "下端 / 上端",
+  "reason": "为什么选这 2 条"
+}
+
+例子: ${scenario.axisExamples}`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 400, jsonMode: true });
+    const result = extractJSON(text);
+    xAxisInput.value = result.x_axis || scenario.defaultAxes.x;
+    yAxisInput.value = result.y_axis || scenario.defaultAxes.y;
+  } catch (err) {
+    xAxisInput.value = scenario.defaultAxes.x;
+    yAxisInput.value = scenario.defaultAxes.y;
+  }
+  updateAnchors();
+  sessionState.layer2.axes = { x: xAxisInput.value, y: yAxisInput.value };
+  renderCrystal();
+  scheduleTopoGenerate();
+}
+
+function updateAnchors() {
+  const [xL, xR] = xAxisInput.value.split('/').map(s => s.trim());
+  const [yB, yT] = yAxisInput.value.split('/').map(s => s.trim());
+  document.getElementById('anchorTL').textContent = `${xL} · ${yT}`;
+  document.getElementById('anchorTR').textContent = `${xR} · ${yT}`;
+  document.getElementById('anchorBL').textContent = `${xL} · ${yB}`;
+  document.getElementById('anchorBR').textContent = `${xR} · ${yB}`;
+  sessionState.layer2.axes = { x: xAxisInput.value, y: yAxisInput.value };
+}
+
+xAxisInput.addEventListener('input', () => { updateAnchors(); renderCrystal(); scheduleTopoGenerate(); });
+yAxisInput.addEventListener('input', () => { updateAnchors(); renderCrystal(); scheduleTopoGenerate(); });
+
+function setTopoCursor(x, y) {
+  topoPos = { x, y };
+  sessionState.layer2.cursor = { x, y };
+  cursor.style.left = `${x * 100}%`;
+  cursor.style.top = `${(1 - y) * 100}%`;
+  coords.textContent = `x: ${x.toFixed(2)} · y: ${y.toFixed(2)}`;
+}
+
+function topoEventPos(e) {
+  const rect = topo.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  let x = (cx - rect.left) / rect.width;
+  let y = 1 - (cy - rect.top) / rect.height;
+  x = Math.max(0, Math.min(1, x));
+  y = Math.max(0, Math.min(1, y));
+  setTopoCursor(x, y);
+  scheduleTopoGenerate();
+}
+topo.addEventListener('mousedown', e => { topoDragging = true; topoEventPos(e); });
+topo.addEventListener('mousemove', e => { if (topoDragging) topoEventPos(e); });
+window.addEventListener('mouseup', () => topoDragging = false);
+topo.addEventListener('click', topoEventPos);
+
+function buildTopoDescriptor(p = topoPos) {
+  const [xL, xR] = xAxisInput.value.split('/').map(s => s.trim());
+  const [yB, yT] = yAxisInput.value.split('/').map(s => s.trim());
+  const xS = p.x < 0.5 ? (0.5 - p.x) * 2 : (p.x - 0.5) * 2;
+  const yS = p.y < 0.5 ? (0.5 - p.y) * 2 : (p.y - 0.5) * 2;
+  const xW = p.x < 0.5 ? xL : xR;
+  const yW = p.y < 0.5 ? yB : yT;
+  const levels = ['略微', '中等', '强烈', '极度'];
+  const xLv = levels[Math.min(3, Math.floor(xS * 4))];
+  const yLv = levels[Math.min(3, Math.floor(yS * 4))];
+  return { descriptor: `${xLv}${xW} · ${yLv}${yW}`, xW, yW, xS, yS };
+}
+
+function scheduleTopoGenerate() {
+  clearTimeout(topoDebounce);
+  topoDebounce = setTimeout(topoGenerate, 500);
+}
+
+async function topoGenerate() {
+  const { descriptor, xW, yW, xS, yS } = buildTopoDescriptor();
+  topoDescriptor.textContent = `style: ${descriptor}`;
+
+  const requestId = ++topoRequestId;
+  cursor.classList.add('loading');
+
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const prompt = `基于用户意图 ${intentStr},给出一条处于以下风格定位的"${scenario.taskObject}摘要"(60 字内,中文,直接写,不要引号不要标题):
+
+- X 轴 (${xAxisInput.value}): "${xW}" ${(xS*100).toFixed(0)}%
+- Y 轴 (${yAxisInput.value}): "${yW}" ${(yS*100).toFixed(0)}%
+综合: ${descriptor}`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 200 });
+    if (requestId !== topoRequestId) return;
+    topoText.textContent = text;
+    sessionState.layer2.final_draft = text;
+    renderCrystal();
+  } catch (err) {
+    topoText.textContent = `[错误] ${err.message}`;
+  } finally {
+    if (requestId === topoRequestId) cursor.classList.remove('loading');
+  }
+}
+
+/* Variants */
+genVariantsBtn.addEventListener('click', () => generateVariants());
+widerVariantsBtn.addEventListener('click', () => { divergentSpread = Math.min(0.45, divergentSpread * 1.3); generateVariants(); });
+
+async function generateVariants() {
+  const s = divergentSpread;
+  const positions = [
+    { x: topoPos.x - s, y: topoPos.y + s*0.3, tag: '左·上' },
+    { x: topoPos.x + s, y: topoPos.y + s*0.3, tag: '右·上' },
+    { x: topoPos.x - s*0.3, y: topoPos.y - s, tag: '下·左' },
+    { x: topoPos.x + s*0.3, y: topoPos.y - s, tag: '下·右' }
+  ].map(p => ({
+    x: Math.max(0.05, Math.min(0.95, p.x)),
+    y: Math.max(0.05, Math.min(0.95, p.y)),
+    tag: p.tag
+  }));
+
+  const labels = ['A', 'B', 'C', 'D'];
+  variantGrid.innerHTML = positions.map((p, i) => {
+    const d = buildTopoDescriptor(p);
+    return `
+      <div class="variant-card loading" data-i="${i}" data-label="${labels[i]}">
+        <div class="v-direction">${d.descriptor}</div>
+        <div class="v-text">生成中...</div>
+        <div class="v-actions">
+          <button class="v-btn" data-action="pick" data-i="${i}">选这个</button>
+          <button class="v-btn" data-action="explore" data-i="${i}">以此发散</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const results = await Promise.all(positions.map(async p => {
+    const d = buildTopoDescriptor(p);
+    try {
+      return await callLLM(`基于意图 ${intentStr},写一段 50 字内的${scenario.taskObject},风格定位: ${d.descriptor}。直接写,不要引号不要标题。`, { maxTokens: 180 });
+    } catch (e) {
+      return `[错误] ${e.message}`;
+    }
+  }));
+
+  results.forEach((text, i) => {
+    const card = variantGrid.querySelector(`.variant-card[data-i="${i}"]`);
+    if (card) {
+      card.classList.remove('loading');
+      card.querySelector('.v-text').textContent = text;
+    }
+  });
+  sessionState.layer2.variants = results.map((text, i) => ({ text, pos: positions[i] }));
+
+  variantGrid.querySelectorAll('.v-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = parseInt(btn.dataset.i);
+      const action = btn.dataset.action;
+      const p = positions[i];
+      setTopoCursor(p.x, p.y);
+      if (action === 'pick') {
+        sessionState.layer2.final_draft = results[i];
+        topoText.textContent = results[i];
+        topoDescriptor.textContent = `style: ${buildTopoDescriptor(p).descriptor} · picked`;
+        renderCrystal();
+      } else {
+        divergentSpread = Math.max(0.12, divergentSpread * 0.72);
+        setTimeout(generateVariants, 200);
+      }
+    });
+  });
+}
+
+/* Subtractive sculpting */
+genDraftBtn.addEventListener('click', async () => {
+  genDraftBtn.disabled = true;
+  genDraftBtn.textContent = '生成中...';
+  subtractEmpty.textContent = 'AI 正在起草大而全版本...';
+  subtractChips.style.display = 'none';
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const baseDraft = sessionState.layer2.final_draft || '(见 L1 意图)';
+  const prompt = `基于以下意图与当前方向,写一份"大而全"的${scenario.taskObject}初稿。要包含: ${scenario.draftSections}。每一点用 1-2 句概括,总长度 250-350 字,用中文句号分隔。不要用 markdown、标题或编号,只输出流畅的段落。
+
+意图: ${intentStr}
+当前方向: ${baseDraft}`;
+  try {
+    const text = await callLLM(prompt, { maxTokens: 700 });
+    renderSubtractChunks(text);
+  } catch (err) {
+    subtractEmpty.style.display = 'block';
+    subtractEmpty.textContent = `[错误] ${err.message}`;
+  } finally {
+    genDraftBtn.disabled = false;
+    genDraftBtn.textContent = '重新生成初稿';
+  }
+});
+
+function renderSubtractChunks(text) {
+  const sentences = text.split(/(?<=[。！？.!?])\s*/).filter(s => s.trim().length > 2);
+  subtractChunks = sentences.map(s => ({ text: s.trim(), state: 'neutral' }));
+  subtractEmpty.style.display = 'none';
+  subtractChips.style.display = 'flex';
+  subtractChips.innerHTML = subtractChunks.map((c, i) =>
+    `<div class="chunk" data-i="${i}">${escapeHtml(c.text)}</div>`
+  ).join('');
+  subtractChips.querySelectorAll('.chunk').forEach((el, i) => {
+    el.addEventListener('click', () => toggleChunk(i));
+  });
+  reshapeBtn.disabled = false;
+}
+
+function toggleChunk(i) {
+  const c = subtractChunks[i];
+  // neutral -> keep -> drop -> neutral
+  c.state = c.state === 'neutral' ? 'keep' : c.state === 'keep' ? 'drop' : 'neutral';
+  const el = subtractChips.querySelector(`.chunk[data-i="${i}"]`);
+  el.classList.remove('keep', 'drop');
+  if (c.state !== 'neutral') el.classList.add(c.state);
+}
+
+reshapeBtn.addEventListener('click', async () => {
+  const keep = subtractChunks.filter(c => c.state === 'keep').map(c => c.text);
+  const drop = subtractChunks.filter(c => c.state === 'drop').map(c => c.text);
+  if (keep.length === 0 && drop.length === 0) {
+    alert('先点击句子标记"保留"(绿色) 或 "删除"(红色,划线)');
+    return;
+  }
+  reshapeBtn.disabled = true;
+  reshapeBtn.textContent = '重塑中...';
+  const prompt = `基于以下用户删减反馈,重写产品发布策略。严格遵守:
+- 必须保留的要点: ${keep.join(' / ') || '(无特别要求)'}
+- 必须删除或改写的要点: ${drop.join(' / ') || '(无特别要求)'}
+
+原稿: ${subtractChunks.map(c => c.text).join(' ')}
+
+输出一份 120-180 字的凝练版本,中文,不要 markdown。`;
+  try {
+    const text = await callLLM(prompt, { maxTokens: 500 });
+    sessionState.layer2.final_draft = text;
+    renderSubtractChunks(text);
+    topoText.textContent = text;
+    topoDescriptor.textContent = 'style: 删减后重塑 · refined';
+    renderCrystal();
+  } catch (err) {
+    alert(`重塑失败: ${err.message}`);
+  } finally {
+    reshapeBtn.disabled = false;
+    reshapeBtn.textContent = '基于勾选重塑 →';
+  }
+});
+
+document.getElementById('l2NextBtn').addEventListener('click', () => {
+  gotoLayer(3);
+});
+
+/* ================================================================ */
+/* LAYER 3 · ORCHESTRATION                                           */
+/* ================================================================ */
+const l3StepsEl = document.getElementById('l3Steps');
+const l3ReceiptEl = document.getElementById('l3Receipt');
+const l3ExecuteBtn = document.getElementById('l3ExecuteBtn');
+const l3NextBtn = document.getElementById('l3NextBtn');
+const l3Hint = document.getElementById('l3Hint');
+
+async function generateL3Plan() {
+  l3StepsEl.innerHTML = `<div class="thinking-indicator" style="padding:40px 0; justify-content:center"><span></span><span></span><span></span><span style="margin-left:10px">根据意图生成执行计划中...</span></div>`;
+
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const draft = sessionState.layer2.final_draft || '(无具体策略方向)';
+  const prompt = `基于以下意图和方向,为"${scenario.taskName}"任务生成 ${scenario.planSizeHint} 的可执行编排计划。每步需要透明化数据来源、关键假设、权限请求。
+
+意图: ${intentStr}
+方向: ${draft}
+
+输出 JSON(只输出 JSON,不要其他文字):
+{
+  "steps": [
+    {
+      "id": "S1",
+      "title": "一句话标题(<16字)",
+      "desc": "一句话描述这步要做什么(<40字)",
+      "sources": [{"name":"短名(<8字)","detail":"具体指什么(<30字)"}],
+      "assumptions": [{"key":"假设名(<10字)","value":"假设值(<20字)"}],
+      "permissions": ["需要的权限1(<12字)"],
+      "duration_days": 数字,估算天数,
+      "artifact_hint": "执行时 AI 会产出什么(<20字)"
+    }
+  ]
+}
+
+原则:
+1. 步骤顺序上要合理(${scenario.planFlowHint})
+2. 每步至少 1 个数据来源和 1 个假设
+3. 权限要具体(如"读取 Notion 文档"、"调用邮件 API"),不要笼统
+4. 考虑${scenario.taskName}的常规流程`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 2000, jsonMode: true });
+    const result = extractJSON(text);
+    sessionState.layer3.plan = (result.steps || []).map(s => ({
+      ...s,
+      status: 'pending',
+      artifact: null,
+      modifyText: ''
+    }));
+    renderL3Steps();
+  } catch (err) {
+    l3StepsEl.innerHTML = `<div style="color:var(--danger); padding:20px">生成计划失败: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+function renderL3Steps() {
+  const plan = sessionState.layer3.plan;
+  l3StepsEl.innerHTML = plan.map((s, i) => `
+    <div class="step-card ${s.status}" data-id="${s.id}">
+      <div class="step-head">
+        <div class="step-title"><span class="num">#${i+1}</span>${escapeHtml(s.title)}</div>
+        <div class="step-status ${s.status}">${statusLabel(s.status)}</div>
+      </div>
+      <div class="step-desc">${escapeHtml(s.desc)}</div>
+
+      <div class="chips-row">
+        ${(s.sources || []).map((src, si) =>
+          `<span class="chip src" data-chip="src-${i}-${si}"><span class="chip-label">src</span>${escapeHtml(src.name)}</span>`
+        ).join('')}
+        ${(s.assumptions || []).map((a, ai) =>
+          `<span class="chip asm" data-chip="asm-${i}-${ai}"><span class="chip-label">asm</span>${escapeHtml(a.key)}=${escapeHtml(a.value)}</span>`
+        ).join('')}
+        ${(s.permissions || []).map((p, pi) =>
+          `<span class="chip perm"><span class="chip-label">perm</span>${escapeHtml(p)}</span>`
+        ).join('')}
+      </div>
+
+      <div class="step-expand" id="expand-${i}"></div>
+
+      ${s.artifact ? `<div class="step-artifact"><small>◆ 产出 · ${escapeHtml(s.artifact_hint || '')}</small>${escapeHtml(s.artifact)}</div>` : ''}
+
+      ${s.status === 'modifying' ? `
+        <textarea class="step-modify-input" data-i="${i}" placeholder="描述你希望怎么改这一步...">${escapeHtml(s.modifyText || '')}</textarea>
+      ` : ''}
+
+      <div class="step-actions">
+        ${s.status === 'pending' ? `
+          <button class="btn good" data-action="approve" data-i="${i}">✓ 批准</button>
+          <button class="btn" data-action="modify" data-i="${i}">✎ 修改</button>
+          <button class="btn danger" data-action="reject" data-i="${i}">✗ 拒绝</button>
+        ` : s.status === 'modifying' ? `
+          <button class="btn primary" data-action="commit-modify" data-i="${i}">提交修改</button>
+          <button class="btn" data-action="cancel-modify" data-i="${i}">取消</button>
+        ` : s.status === 'approved' ? `
+          <button class="btn" data-action="unapprove" data-i="${i}">↶ 撤销批准</button>
+        ` : s.status === 'rejected' ? `
+          <button class="btn" data-action="unapprove" data-i="${i}">↶ 恢复待审</button>
+        ` : s.status === 'executed' ? `
+          <button class="btn" data-action="rerun" data-i="${i}">↻ 重新执行</button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  l3StepsEl.querySelectorAll('.chip[data-chip^="src-"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [, i, si] = el.dataset.chip.split('-').map(Number);
+      toggleChipExpand(i, 'src', sessionState.layer3.plan[i].sources[si]);
+    });
+  });
+  l3StepsEl.querySelectorAll('.chip[data-chip^="asm-"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [, i, ai] = el.dataset.chip.split('-').map(Number);
+      toggleChipExpand(i, 'asm', sessionState.layer3.plan[i].assumptions[ai], ai);
+    });
+  });
+
+  l3StepsEl.querySelectorAll('.step-actions button').forEach(btn => {
+    btn.addEventListener('click', () => handleStepAction(btn.dataset.action, parseInt(btn.dataset.i)));
+  });
+  l3StepsEl.querySelectorAll('.step-modify-input').forEach(ta => {
+    ta.addEventListener('input', () => {
+      sessionState.layer3.plan[parseInt(ta.dataset.i)].modifyText = ta.value;
+    });
+  });
+
+  updateL3Controls();
+}
+
+function toggleChipExpand(i, type, data, idx) {
+  const el = document.getElementById(`expand-${i}`);
+  if (type === 'src') {
+    el.innerHTML = `<small>Source · 数据来源</small><strong>${escapeHtml(data.name)}</strong> —— ${escapeHtml(data.detail || '')}`;
+  } else if (type === 'asm') {
+    el.innerHTML = `<small>Assumption · 假设 (可编辑)</small>
+      <div style="margin-top:6px"><strong>${escapeHtml(data.key)} = </strong>
+      <input value="${escapeHtml(data.value)}" data-i="${i}" data-ai="${idx}" style="background:var(--bg-3); border:1px solid var(--grid-strong); color:var(--ink); padding:4px 8px; font-size:12px; width:200px"></div>`;
+    const inp = el.querySelector('input');
+    inp.addEventListener('change', () => {
+      sessionState.layer3.plan[i].assumptions[idx].value = inp.value;
+    });
+  }
+  el.classList.toggle('open');
+}
+
+function statusLabel(st) {
+  return { pending: '待审', approved: '已批准', rejected: '已拒绝', executed: '已执行', skipped: '已跳过', modifying: '修改中' }[st] || st;
+}
+
+async function handleStepAction(action, i) {
+  const step = sessionState.layer3.plan[i];
+  if (action === 'approve') step.status = 'approved';
+  else if (action === 'reject') step.status = 'rejected';
+  else if (action === 'unapprove') step.status = 'pending';
+  else if (action === 'modify') step.status = 'modifying';
+  else if (action === 'cancel-modify') { step.status = 'pending'; step.modifyText = ''; }
+  else if (action === 'commit-modify') {
+    if (!step.modifyText.trim()) { alert('请先描述修改意图'); return; }
+    step.status = 'pending';
+    await regenerateStep(i, step.modifyText);
+    step.modifyText = '';
+  } else if (action === 'rerun') {
+    step.artifact = null;
+    step.status = 'approved';
+    renderL3Steps();
+    await executeStep(i);
+    return;
+  }
+  renderL3Steps();
+  renderCrystal();
+}
+
+async function regenerateStep(i, feedback) {
+  const step = sessionState.layer3.plan[i];
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const prompt = `用户对计划中的某一步提出修改意见,你需要重写这一步的 title/desc/sources/assumptions/permissions。
+
+原步骤 JSON: ${JSON.stringify(step)}
+用户修改意见: ${feedback}
+整体意图: ${intentStr}
+
+输出 JSON:
+{
+  "title":"...", "desc":"...",
+  "sources":[{"name":"","detail":""}],
+  "assumptions":[{"key":"","value":""}],
+  "permissions":["..."],
+  "duration_days":数字,
+  "artifact_hint":"..."
+}`;
+  try {
+    const text = await callLLM(prompt, { maxTokens: 800, jsonMode: true });
+    const result = extractJSON(text);
+    Object.assign(step, result);
+  } catch (err) {
+    alert(`重新生成失败: ${err.message}`);
+  }
+}
+
+function updateL3Controls() {
+  const plan = sessionState.layer3.plan;
+  if (!plan.length) return;
+  const pending = plan.filter(s => s.status === 'pending' || s.status === 'modifying').length;
+  const approved = plan.filter(s => s.status === 'approved').length;
+  const executed = plan.filter(s => s.status === 'executed').length;
+
+  l3ExecuteBtn.disabled = pending > 0 || approved === 0;
+  l3NextBtn.disabled = executed === 0;
+
+  if (pending > 0) l3Hint.textContent = `还有 ${pending} 步待审议`;
+  else if (approved > 0 && executed === 0) l3Hint.textContent = `${approved} 步已批准 · 点执行以生成产出`;
+  else if (executed > 0) l3Hint.textContent = `${executed} 步已执行 · 可进入操纵层做颗粒度调整`;
+}
+
+l3ExecuteBtn.addEventListener('click', async () => {
+  l3ExecuteBtn.disabled = true;
+  const plan = sessionState.layer3.plan;
+  for (let i = 0; i < plan.length; i++) {
+    if (plan[i].status === 'approved') {
+      await executeStep(i);
+    }
+  }
+  renderReceipt();
+  renderCrystal();
+  updateL3Controls();
+});
+
+async function executeStep(i) {
+  const step = sessionState.layer3.plan[i];
+  step.status = 'executed';
+  step.artifact = '⌛ 生成中...';
+  renderL3Steps();
+  const intentStr = JSON.stringify(sessionState.layer1.intent_summary || {});
+  const draft = sessionState.layer2.final_draft || '';
+  const prompt = `你是自动化执行代理。执行以下计划步骤并产出实际工件。
+
+整体意图: ${intentStr}
+策略方向: ${draft}
+当前步骤: ${step.title} —— ${step.desc}
+预期产出: ${step.artifact_hint}
+引用的数据来源: ${(step.sources || []).map(s => s.name).join(', ')}
+依据的假设: ${(step.assumptions || []).map(a => `${a.key}=${a.value}`).join(', ')}
+
+直接产出工件文本(100-200 字,中文,可以是: 新闻稿段落/邮件正文/大纲/指标列表,视步骤类型决定)。不要用 markdown 标题,只输出正文。`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 600 });
+    step.artifact = text;
+  } catch (err) {
+    step.artifact = `[错误] ${err.message}`;
+  }
+  renderL3Steps();
+}
+
+function renderReceipt() {
+  const plan = sessionState.layer3.plan;
+  const executed = plan.filter(s => s.status === 'executed');
+  if (!executed.length) { l3ReceiptEl.classList.add('hidden'); return; }
+  const allSources = new Set();
+  const allAssumptions = [];
+  executed.forEach(s => {
+    (s.sources || []).forEach(src => allSources.add(src.name));
+    (s.assumptions || []).forEach(a => allAssumptions.push(`${a.key}=${a.value}`));
+  });
+  l3ReceiptEl.classList.remove('hidden');
+  l3ReceiptEl.innerHTML = `
+    <div class="receipt">
+      <h4>✓ 操作收据 · Receipt</h4>
+      <div class="receipt-row">
+        <small>改动了什么</small>
+        新建 ${executed.length} 个工件 (${executed.map(s => s.title).join('、')})
+      </div>
+      <div class="receipt-row">
+        <small>使用的假设</small>
+        ${allAssumptions.length ? allAssumptions.map(a => escapeHtml(a)).join(' · ') : '无'}
+      </div>
+      <div class="receipt-row">
+        <small>数据来源</small>
+        ${[...allSources].map(escapeHtml).join(' · ') || '无'}
+      </div>
+      <div class="receipt-row">
+        <small>未执行</small>
+        ${plan.filter(s => s.status !== 'executed').map(s => `${s.title}(${statusLabel(s.status)})`).join('、') || '—'}
+      </div>
+      <div style="margin-top:12px"><button class="btn danger" id="undoBtn">↶ 撤销 (mock)</button></div>
+    </div>`;
+  document.getElementById('undoBtn').addEventListener('click', () => {
+    alert('模拟撤销已触发 · 实际系统中会回滚所有工件');
+  });
+}
+
+document.getElementById('acceptConflictB').addEventListener('click', () => {
+  document.getElementById('conflictB').innerHTML = `<div class="cf-label" style="color:var(--good)">✓ 已接纳</div><div class="cf-text">A/B 测试步骤已加入计划,请向下滚动查看新增步骤。</div>`;
+  addABTestStep();
+});
+document.getElementById('ignoreConflictB').addEventListener('click', () => {
+  document.getElementById('conflictB').innerHTML = `<div class="cf-label" style="color:var(--ink-dimmer)">已忽略</div><div class="cf-text">AI 子代理的 A/B 建议未纳入。</div>`;
+});
+
+function addABTestStep() {
+  const newStep = {
+    ...scenario.conflicts.subAgentSuggestion.newStep,
+    status: 'pending',
+    artifact: null,
+    modifyText: ''
+  };
+  sessionState.layer3.plan.push(newStep);
+  renderL3Steps();
+}
+
+l3NextBtn.addEventListener('click', () => { gotoLayer(4); });
+
+/* ================================================================ */
+/* LAYER 4 · DIRECT MANIPULATION                                     */
+/* ================================================================ */
+const ganttHeader = document.getElementById('ganttHeader');
+const ganttBody = document.getElementById('ganttBody');
+const artifactGrid = document.getElementById('artifactGrid');
+const drawer = document.getElementById('drawer');
+const drawerBackdrop = document.getElementById('drawerBackdrop');
+const drawerTitle = document.getElementById('drawerTitle');
+const drawerSub = document.getElementById('drawerSub');
+const drawerText = document.getElementById('drawerText');
+const drawerSources = document.getElementById('drawerSources');
+const drawerCancel = document.getElementById('drawerCancel');
+const drawerSave = document.getElementById('drawerSave');
+const optimizeBtn = document.getElementById('optimizeBtn');
+const l4OptimizeBox = document.getElementById('l4OptimizeBox');
+const l4Summary = document.getElementById('l4Summary');
+
+let TOTAL_DAYS = scenario.timelineTotalDays;
+let DAY_STEP = scenario.timelineDayStep;
+
+function initTimelineFromPlan() {
+  const executed = sessionState.layer3.plan.filter(s => s.status === 'executed');
+  if (sessionState.layer4.timeline.length) return; // 已初始化过,保留用户的拖拽状态
+  let cur = 0;
+  sessionState.layer4.timeline = executed.map(s => {
+    const item = {
+      stepId: s.id,
+      title: s.title,
+      artifact: s.artifact,
+      artifactHint: s.artifact_hint,
+      sources: s.sources,
+      assumptions: s.assumptions,
+      start: cur,
+      duration: Math.max(1, s.duration_days || 3)
+    };
+    cur += item.duration;
+    return item;
+  });
+}
+
+function renderL4() {
+  initTimelineFromPlan();
+  renderGantt();
+  renderArtifacts();
+}
+
+function renderGantt() {
+  // header
+  ganttHeader.innerHTML = '';
+  for (let d = 0; d < TOTAL_DAYS; d += DAY_STEP) {
+    const el = document.createElement('div');
+    el.className = 'gantt-day-label';
+    el.textContent = `Day ${d}`;
+    ganttHeader.appendChild(el);
+  }
+
+  const tl = sessionState.layer4.timeline;
+  ganttBody.innerHTML = tl.map((it, i) => `
+    <div class="gantt-row" data-i="${i}">
+      <div class="gantt-label">
+        <span class="gnum">#${i+1}</span>
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escapeHtml(it.title)}</span>
+        <span class="reorder">
+          <button data-action="up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>▲</button>
+          <button data-action="down" data-i="${i}" ${i === tl.length-1 ? 'disabled' : ''}>▼</button>
+        </span>
+      </div>
+      <div class="gantt-track">
+        <div class="gantt-bar" data-i="${i}"
+          style="left:${(it.start / TOTAL_DAYS) * 100}%; width:${(it.duration / TOTAL_DAYS) * 100}%">
+          <span class="bar-title">${escapeHtml(it.title)}</span>
+          <span class="bar-meta">D${it.start}–${it.start + it.duration}</span>
+          <div class="bar-resize" data-i="${i}"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // reorder buttons
+  ganttBody.querySelectorAll('.reorder button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      const action = btn.dataset.action;
+      const tl = sessionState.layer4.timeline;
+      if (action === 'up' && i > 0) { [tl[i-1], tl[i]] = [tl[i], tl[i-1]]; }
+      else if (action === 'down' && i < tl.length - 1) { [tl[i+1], tl[i]] = [tl[i], tl[i+1]]; }
+      renderGantt();
+      renderArtifacts();
+    });
+  });
+
+  // drag bars
+  ganttBody.querySelectorAll('.gantt-bar').forEach(bar => {
+    bar.addEventListener('mousedown', e => startBarDrag(e, bar));
+  });
+  ganttBody.querySelectorAll('.bar-resize').forEach(rz => {
+    rz.addEventListener('mousedown', e => { e.stopPropagation(); startBarResize(e, rz); });
+  });
+}
+
+function startBarDrag(e, bar) {
+  e.preventDefault();
+  const i = parseInt(bar.dataset.i);
+  const track = bar.parentElement;
+  const trackRect = track.getBoundingClientRect();
+  const item = sessionState.layer4.timeline[i];
+  const startPx = e.clientX;
+  const origStart = item.start;
+  bar.classList.add('dragging');
+
+  const onMove = (ev) => {
+    const dx = ev.clientX - startPx;
+    const dxDays = (dx / trackRect.width) * TOTAL_DAYS;
+    let newStart = origStart + dxDays;
+    newStart = Math.max(0, Math.min(TOTAL_DAYS - item.duration, newStart));
+    item.start = Math.round(newStart);
+    bar.style.left = `${(item.start / TOTAL_DAYS) * 100}%`;
+    bar.querySelector('.bar-meta').textContent = `D${item.start}–${item.start + item.duration}`;
+  };
+  const onUp = () => {
+    bar.classList.remove('dragging');
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function startBarResize(e, rz) {
+  e.preventDefault();
+  const i = parseInt(rz.dataset.i);
+  const bar = rz.parentElement;
+  const track = bar.parentElement;
+  const trackRect = track.getBoundingClientRect();
+  const item = sessionState.layer4.timeline[i];
+  const startPx = e.clientX;
+  const origDur = item.duration;
+
+  const onMove = (ev) => {
+    const dx = ev.clientX - startPx;
+    const dxDays = (dx / trackRect.width) * TOTAL_DAYS;
+    let newDur = origDur + dxDays;
+    newDur = Math.max(1, Math.min(TOTAL_DAYS - item.start, Math.round(newDur)));
+    item.duration = newDur;
+    bar.style.width = `${(newDur / TOTAL_DAYS) * 100}%`;
+    bar.querySelector('.bar-meta').textContent = `D${item.start}–${item.start + item.duration}`;
+  };
+  const onUp = () => {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function renderArtifacts() {
+  const tl = sessionState.layer4.timeline;
+  artifactGrid.innerHTML = tl.map((it, i) => `
+    <div class="artifact-card" data-i="${i}">
+      <div class="af-num">#${i+1} · D${it.start}–${it.start + it.duration}</div>
+      <div class="af-title">${escapeHtml(it.title)}</div>
+      <div class="af-preview">${escapeHtml(it.artifact || '(无产出)')}</div>
+    </div>
+  `).join('');
+  artifactGrid.querySelectorAll('.artifact-card').forEach(card => {
+    card.addEventListener('click', () => openDrawer(parseInt(card.dataset.i)));
+  });
+}
+
+let drawerOpenIdx = -1;
+function openDrawer(i) {
+  drawerOpenIdx = i;
+  const it = sessionState.layer4.timeline[i];
+  drawerTitle.textContent = `#${i+1} · ${it.title}`;
+  drawerSub.textContent = `artifact · ${it.artifactHint || ''}`;
+  drawerText.value = it.artifact || '';
+  drawerSources.innerHTML = `
+    <div class="source-expanded">
+      <strong>Sources · 数据来源</strong><br>${(it.sources || []).map(s => `<span>${escapeHtml(s.name)} —— ${escapeHtml(s.detail || '')}</span>`).join('<br>') || '无'}
+    </div>
+    <div class="source-expanded" style="border-color: var(--accent-3); background: rgba(255,217,61,0.04)">
+      <strong>Assumptions · 假设</strong><br>${(it.assumptions || []).map(a => `<span>${escapeHtml(a.key)} = ${escapeHtml(a.value)}</span>`).join('<br>') || '无'}
+    </div>`;
+  drawer.classList.add('open');
+  drawerBackdrop.classList.add('open');
+}
+function closeDrawer() {
+  drawer.classList.remove('open');
+  drawerBackdrop.classList.remove('open');
+  drawerOpenIdx = -1;
+}
+drawerCancel.addEventListener('click', closeDrawer);
+drawerBackdrop.addEventListener('click', closeDrawer);
+drawerSave.addEventListener('click', () => {
+  if (drawerOpenIdx < 0) return;
+  sessionState.layer4.timeline[drawerOpenIdx].artifact = drawerText.value;
+  renderArtifacts();
+  closeDrawer();
+});
+
+optimizeBtn.addEventListener('click', async () => {
+  optimizeBtn.disabled = true;
+  optimizeBtn.textContent = '检测中...';
+  l4OptimizeBox.innerHTML = '';
+  const tl = sessionState.layer4.timeline.map((it, i) => ({
+    order: i + 1, title: it.title, start: it.start, duration: it.duration, end: it.start + it.duration
+  }));
+  const prompt = `你是项目计划评审代理。检查以下时间轴是否有冲突 / 次序错误 / 依赖倒置。用中文简明输出,不要 markdown:
+
+时间轴(按当前顺序):
+${JSON.stringify(tl, null, 2)}
+
+输出:
+1. 发现的问题(如"#3 在 #2 结束前开始但依赖它",或"没有问题")
+2. 具体的修复建议(哪步该挪到哪天,或哪步该放到前面)
+3. 如果完全 OK,只说"时间轴一致,无冲突"
+总长度不超过 150 字。`;
+  try {
+    const text = await callLLM(prompt, { maxTokens: 400 });
+    l4OptimizeBox.innerHTML = `<div class="l4-optimize-result"><div class="olabel">🧠 Optimizer · 冲突检测结果</div>${escapeHtml(text).replace(/\n/g,'<br>')}</div>`;
+    sessionState.layer4.optimizeResult = text;
+  } catch (err) {
+    l4OptimizeBox.innerHTML = `<div class="l4-optimize-result" style="border-color: var(--danger)">[错误] ${err.message}</div>`;
+  } finally {
+    optimizeBtn.disabled = false;
+    optimizeBtn.textContent = '🧠 优化交接 · 冲突检测';
+  }
+});
+
+document.getElementById('l4FinishBtn').addEventListener('click', () => {
+  const tl = sessionState.layer4.timeline;
+  const totalDays = Math.max(...tl.map(it => it.start + it.duration), 0);
+  l4Summary.classList.remove('hidden');
+  l4Summary.innerHTML = `
+    <div class="summary-panel">
+      <h3>旅程完成 · 从模糊请求到可执行计划</h3>
+      <div class="meta">
+        Raw Request · ${escapeHtml(sessionState.request)}<br>
+        L1 · ${sessionState.layer1.history.length} 轮苏格拉底式问答 · 意图清晰度 ${sessionState.layer1.confidence}%<br>
+        L2 · 策略草稿 ${sessionState.layer2.final_draft.length} 字 · 轴: ${escapeHtml(sessionState.layer2.axes?.x || '—')} × ${escapeHtml(sessionState.layer2.axes?.y || '—')}<br>
+        L3 · ${sessionState.layer3.plan.length} 步计划 · 执行 ${tl.length} 步<br>
+        L4 · 时间跨度 ${totalDays} 天
+      </div>
+      <div style="margin-top:22px; padding-top:18px; border-top:1px dashed var(--grid); display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+        <button class="btn" id="summaryBranchBtn">↻ 意图不清晰 · 换场景重启 L1</button>
+      </div>
+    </div>`;
+  document.getElementById('summaryBranchBtn').addEventListener('click', openScenarioPicker);
+  l4Summary.scrollIntoView({ behavior: 'smooth', block: 'end' });
+});
+
+/* ================================================================ */
+/* SCENARIO SWITCHING · 任意层发现意图不清晰 → 另起一个场景进 L1    */
+/* ================================================================ */
+const availableScenarios = [
+  { id: 'product-launch', label: '产品发布策略' },
+  { id: 'enterprise-strategy-design', label: '战略设计' },
+  { id: 'podcast-production', label: '播客制作' }
+  // 新场景在此注册(或后续从 scenarios/index.json 动态拉取)
+];
+
+function renderScenarioList() {
+  const list = [...availableScenarios];
+  try {
+    const pv = localStorage.getItem('scenarioPreview');
+    if (pv) {
+      const parsed = JSON.parse(pv);
+      list.push({ id: '_preview', label: `⚡ ${parsed.label || '未命名'} (编辑器预览)` });
+    }
+  } catch {}
+  const currentId = scenario.id;
+  document.getElementById('scenarioList').innerHTML = list.map(s => {
+    const isCurrent = s.id === currentId;
+    return `<button class="scenario-pick-card" data-id="${escapeHtml(s.id)}" ${isCurrent ? 'disabled' : ''}>
+      <div class="pick-label">${escapeHtml(s.label)}</div>
+      <div class="pick-id">id: ${escapeHtml(s.id)}${isCurrent ? ' · 当前场景' : ''}</div>
+    </button>`;
+  }).join('');
+  document.getElementById('scenarioList').querySelectorAll('button[data-id]:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const carry = document.getElementById('carrySeed').checked;
+      switchScenario(btn.dataset.id, carry);
+    });
+  });
+}
+
+function openScenarioPicker() {
+  renderScenarioList();
+  document.getElementById('scenarioPicker').classList.remove('hidden');
+}
+function closeScenarioPicker() {
+  document.getElementById('scenarioPicker').classList.add('hidden');
+}
+
+async function switchScenario(newId, carrySeed) {
+  // 在切换前生成"来自上一个场景"的种子请求
+  let seedRequest = '';
+  if (carrySeed) {
+    const parts = [`[来自"${scenario.label}"]`];
+    if (sessionState.request) parts.push(`原请求:${sessionState.request}`);
+    if (sessionState.layer1.intent_summary?.goal) {
+      parts.push(`已确定目标:${sessionState.layer1.intent_summary.goal}`);
+    }
+    const layerStory = {
+      1: '在采访阶段发现需要换个角度',
+      2: '在意图探索阶段发现方向不对路',
+      3: '在编排阶段发现意图不清晰',
+      4: '在执行阶段发现需要重新梳理某子问题'
+    }[sessionState.currentLayer] || '发现意图不清晰';
+    parts.push(layerStory);
+    seedRequest = parts.join(' · ');
+  }
+
+  try {
+    const loaded = await loadScenarioMd(newId);
+    scenario = loaded;
+    TOTAL_DAYS = scenario.timelineTotalDays;
+    DAY_STEP = scenario.timelineDayStep;
+    resetSessionForNewScenario(seedRequest);
+    // 更新 URL 参数(不刷新页面)
+    const url = new URL(location.href);
+    url.searchParams.set('scenario', newId);
+    history.replaceState(null, '', url);
+    closeScenarioPicker();
+  } catch (err) {
+    alert(`切换场景失败: ${err.message}`);
+  }
+}
+
+function resetSessionForNewScenario(seedRequest) {
+  // state
+  sessionState.request = '';
+  sessionState.context = scenario.contextForPrompt;
+  sessionState.layer1 = { intent_summary: null, confidence: 0, history: [] };
+  sessionState.layer2 = { axes: null, final_draft: '', cursor: { x: 0.5, y: 0.5 }, variants: [] };
+  sessionState.layer3 = { plan: [], receipt: null };
+  sessionState.layer4 = { timeline: [], optimizeResult: null };
+  sessionState.visited = new Set([1]);
+  sessionState.currentLayer = 1;
+
+  // L1 dom
+  document.getElementById('requestInput').value = seedRequest || scenario.defaultRequest;
+  document.getElementById('interviewArea').classList.add('hidden');
+  document.getElementById('l1Question').innerHTML = `<div class="thinking-indicator"><span></span><span></span><span></span><span style="margin-left:10px">等待开始采访</span></div>`;
+  document.getElementById('l1Reasoning').style.display = 'none';
+  document.getElementById('l1AnswerButtons').innerHTML = '';
+  document.getElementById('l1HpiPanel').style.display = 'none';
+  document.getElementById('l1HistoryList').style.display = 'none';
+  document.getElementById('l1HistoryList').innerHTML = '';
+  document.getElementById('l1ConfidenceFill').style.width = '0%';
+  document.getElementById('l1ConfidenceText').textContent = '意图清晰度: 0%';
+  document.getElementById('l1Round').textContent = 'Round 0';
+  document.getElementById('l1NextBtn').disabled = true;
+
+  // L2 dom + module state
+  l2Inited = false;
+  topoPos = { x: 0.5, y: 0.5 };
+  topoRequestId = 0;
+  divergentSpread = 0.3;
+  subtractChunks = [];
+  document.getElementById('cursor').style.left = '50%';
+  document.getElementById('cursor').style.top = '50%';
+  document.getElementById('coords').textContent = 'x: 0.50 · y: 0.50';
+  document.getElementById('topoDescriptor').textContent = 'style: —';
+  document.getElementById('topoText').textContent = '拖动左侧光标,观察策略摘要随坐标变化';
+  document.getElementById('variantGrid').innerHTML = '';
+  document.getElementById('subtractChips').style.display = 'none';
+  document.getElementById('subtractChips').innerHTML = '';
+  document.getElementById('subtractEmpty').style.display = 'block';
+  document.getElementById('reshapeBtn').disabled = true;
+  document.getElementById('xAxisInput').value = '—';
+  document.getElementById('yAxisInput').value = '—';
+
+  // L3 dom
+  document.getElementById('l3Steps').innerHTML = `<div class="thinking-indicator" style="padding:40px 0; justify-content:center"><span></span><span></span><span></span><span style="margin-left:10px">根据意图生成执行计划中...</span></div>`;
+  document.getElementById('l3Receipt').classList.add('hidden');
+  document.getElementById('l3Receipt').innerHTML = '';
+  document.getElementById('l3ExecuteBtn').disabled = true;
+  document.getElementById('l3NextBtn').disabled = true;
+  document.getElementById('l3Hint').textContent = '请逐项审议 · 批准/修改/拒绝 · 全部处理后可以执行';
+
+  // L4 dom
+  document.getElementById('ganttBody').innerHTML = '';
+  document.getElementById('ganttHeader').innerHTML = '';
+  document.getElementById('artifactGrid').innerHTML = '';
+  document.getElementById('l4OptimizeBox').innerHTML = '';
+  document.getElementById('l4Summary').classList.add('hidden');
+  document.getElementById('l4Summary').innerHTML = '';
+
+  applyScenarioToDom();
+  gotoLayer(1);
+  renderCrystal();
+}
+
+document.getElementById('scenarioBtn').addEventListener('click', openScenarioPicker);
+document.getElementById('pickCancel').addEventListener('click', closeScenarioPicker);
+
+/* 初始渲染 · 异步加载 scenario md,失败则退回 FALLBACK_SCENARIO */
+bootstrap();
+</script>
+
+</body>
+</html>

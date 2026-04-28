@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Mind Reader · 雾中显影</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #08070a;
+  --bg-2: #0f0e13;
+  --bg-3: #18161d;
+  --ink: #f5f1e8;
+  --ink-dim: #8a857a;
+  --ink-dimmer: #4a4640;
+  --accent: #ff6b35;
+  --accent-2: #4ecdc4;
+  --accent-3: #ffd93d;
+  --grid: rgba(245, 241, 232, 0.05);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fraunces', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(78,205,196,0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(255,107,53,0.05), transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(180,120,220,0.04), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+header {
+  padding: 28px 40px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--grid);
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+.title span { color: var(--accent); }
+.title em { color: var(--accent-2); font-style: normal; font-weight: 300; font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; display: inline-block; margin-left: 12px; }
+
+.subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 36px;
+  padding: 36px 40px;
+  max-width: 1700px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+.panel-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.mind-map {
+  position: relative;
+  aspect-ratio: 1;
+  background: radial-gradient(ellipse at center, var(--bg-3) 0%, var(--bg) 80%);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fog-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(120,100,160,0.10) 0%, transparent 30%),
+    radial-gradient(circle at 75% 60%, rgba(100,140,180,0.10) 0%, transparent 35%),
+    radial-gradient(circle at 50% 90%, rgba(160,120,140,0.08) 0%, transparent 40%),
+    radial-gradient(circle at 40% 50%, rgba(180,160,200,0.06) 0%, transparent 50%);
+  animation: fogDrift 40s infinite alternate;
+  transition: opacity 1.5s;
+}
+@keyframes fogDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-3%, 2%) scale(1.05); }
+  100% { transform: translate(2%, -2%) scale(1.02); }
+}
+
+.noise-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+}
+
+.map-state-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity 1s;
+}
+.map-state-hint span {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-style: italic;
+  color: var(--ink-dim);
+  letter-spacing: 0.05em;
+  text-align: center;
+  max-width: 70%;
+}
+.map-state-hint.hidden { opacity: 0; }
+
+.candidate {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--ink);
+  pointer-events: none;
+  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 0 12px rgba(255,255,255,0.25);
+}
+.candidate.fading {
+  opacity: 0.18 !important;
+  filter: blur(2px);
+}
+.candidate.leader {
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(255,107,53,0.6), 0 0 40px rgba(255,107,53,0.3);
+}
+.candidate.dying {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) scale(0.5) !important;
+  filter: blur(8px);
+}
+
+.confidence-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+}
+.confidence-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-3);
+  margin: 0 14px;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  width: 0%;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.confidence-threshold {
+  position: absolute;
+  top: -3px;
+  left: 85%;
+  width: 1px;
+  height: 9px;
+  background: var(--accent-3);
+}
+
+.dialogue-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.round-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.round-info .round {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+}
+
+.question-card {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  padding: 28px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  min-height: 140px;
+}
+
+.question-card::before {
+  content: 'Q';
+  position: absolute;
+  top: 14px; right: 18px;
+  font-family: 'Fraunces', serif;
+  font-size: 40px;
+  font-style: italic;
+  color: var(--accent);
+  opacity: 0.25;
+  font-weight: 900;
+}
+
+.question-text {
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 300;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  min-height: 60px;
+  position: relative;
+  z-index: 1;
+}
+
+.thinking-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--ink-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+}
+.thinking-indicator span {
+  width: 4px; height: 4px;
+  background: var(--accent-2);
+  border-radius: 50%;
+  animation: dot 1.2s infinite;
+}
+.thinking-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.answer-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.answer-buttons.five { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.answer-buttons.two { grid-template-columns: 1fr 1fr; }
+.answer-buttons.four { grid-template-columns: 1fr 1fr; }
+.ans-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 14px 8px;
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  text-align: center;
+}
+.answer-buttons.five .ans-btn { font-size: 11px; padding: 10px 4px; }
+.ans-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-3);
+  transform: translateY(-1px);
+}
+.ans-btn.primary {
+  color: var(--accent-2);
+  border-color: rgba(78,205,196,0.3);
+}
+.ans-btn.primary:hover { background: rgba(78,205,196,0.1); }
+.ans-btn.negative {
+  color: #d87070;
+  border-color: rgba(216,112,112,0.3);
+}
+.ans-btn.negative:hover { background: rgba(216,112,112,0.1); }
+
+.history {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 8px;
+  max-height: 300px;
+}
+.history-item {
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-left: 2px solid var(--grid);
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.history-item .q {
+  flex: 1;
+  color: var(--ink-dim);
+  font-style: italic;
+}
+.history-item .a {
+  color: var(--accent-2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.final-guess {
+  background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(78,205,196,0.08));
+  border: 1px solid var(--accent);
+  padding: 32px;
+  text-align: center;
+  border-radius: 2px;
+  margin-bottom: 16px;
+}
+.final-guess .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--accent-3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.final-guess .word {
+  font-size: 48px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.final-guess .confidence {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+}
+.final-guess .actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+.start-screen h2 {
+  font-size: 28px;
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+.start-screen p {
+  color: var(--ink-dim);
+  margin-bottom: 28px;
+  line-height: 1.7;
+  font-size: 15px;
+  max-width: 420px;
+}
+.start-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 16px 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.start-btn:hover { background: var(--accent-3); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,107,53,0.3); }
+
+.hidden { display: none !important; }
+
+.settings-btn {
+  background: transparent;
+  border: 1px solid var(--grid);
+  color: var(--ink-dim);
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+  padding: 32px;
+  width: 520px;
+  max-width: 92vw;
+}
+.modal h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.modal .modal-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+.form-row { margin-bottom: 16px; }
+.form-row label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.form-row input {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-row input:focus { border-color: var(--accent); }
+.round-info { gap: 10px; }
+.hint-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.hint-row input {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.hint-row input:focus { border-color: var(--accent-2); }
+.history-item.hint { border-left-color: var(--accent-3); }
+.history-item.hint .a { color: var(--accent-3); }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+footer {
+  padding: 16px 40px 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-align: center;
+  border-top: 1px solid var(--grid);
+  position: relative;
+  z-index: 1;
+}
+
+.reasoning-line {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-dimmer);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--grid);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="title">Mind <span>Reader</span><em>雾中显影</em></div>
+    <div class="subtitle" style="margin-top:6px">Divergent Routing × Semantic Topography · 让系统推理你脑中的词</div>
+  </div>
+  <button class="settings-btn" id="settingsBtn">⚙ 模型配置</button>
+</header>
+
+<div id="settingsModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>大语言模型配置</h3>
+    <div class="modal-sub">OpenAI-compatible Endpoint</div>
+    <div class="form-row">
+      <label>Base URL</label>
+      <input type="text" id="cfgBaseUrl" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1">
+    </div>
+    <div class="form-row">
+      <label>API Key</label>
+      <input type="password" id="cfgApiKey" placeholder="sk-...">
+    </div>
+    <div class="form-row">
+      <label>Model</label>
+      <input type="text" id="cfgModel" placeholder="qwen-plus">
+    </div>
+    <div class="modal-actions">
+      <button class="ans-btn" id="cfgCancel" style="padding:10px 18px">取消</button>
+      <button class="ans-btn primary" id="cfgSave" style="padding:10px 18px">保存</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section>
+    <div class="panel-label">Possibility Space · 候选空间</div>
+    <div class="mind-map" id="mindMap">
+      <div class="fog-layer" id="fogLayer"></div>
+      <div class="noise-layer"></div>
+      <div class="map-state-hint" id="mapHint">
+        <span>混沌 · 一切皆有可能</span>
+      </div>
+    </div>
+    <div class="confidence-strip">
+      <span id="candCount">候选: —</span>
+      <div class="confidence-bar">
+        <div class="confidence-fill" id="confidenceFill"></div>
+        <div class="confidence-threshold"></div>
+      </div>
+      <span id="confidenceText">信心: 0%</span>
+    </div>
+  </section>
+
+  <section class="dialogue-panel">
+
+    <div id="startScreen" class="start-screen">
+      <h2>想一个词,任何词</h2>
+      <p>
+        人物、物品、概念、动物、地点、情绪——没有任何限制。<br>
+        想好之后,系统会通过一系列问题逐步靠近它。<br>
+        <br>
+        <span style="color:var(--ink-dimmer)">系统一开始什么都不知道,<br>它会从对话中建构出对你所想的理解。</span>
+      </p>
+      <button class="start-btn" id="startBtn">我想好了 · 开始</button>
+    </div>
+
+    <div id="gameScreen" class="hidden">
+      <div class="round-info">
+        <span class="round" id="roundLabel">Round 1</span>
+        <span class="round" id="statusLabel">系统正在思考...</span>
+        <button class="settings-btn" id="restartBtn" style="padding:6px 12px">↻ 重新开始</button>
+      </div>
+
+      <div class="hint-row">
+        <input type="text" id="hintInput" placeholder="给系统一个提示(可选,例如:它是一种食物 / 范围在体育领域)" />
+        <button class="ans-btn primary" id="hintSubmit" style="padding:10px 16px; font-size:12px">提交提示</button>
+      </div>
+
+      <div class="question-card">
+        <div class="question-text" id="questionText">
+          <div class="thinking-indicator">
+            <span></span><span></span><span></span>
+            <span style="margin-left:10px">构造第一个问题中</span>
+          </div>
+        </div>
+        <div class="reasoning-line" id="reasoningLine" style="display:none"></div>
+      </div>
+
+      <div class="answer-buttons" id="answerButtons"></div>
+
+      <div class="panel-label" style="margin-top:12px">Dialogue History</div>
+      <div class="history" id="history"></div>
+    </div>
+
+    <div id="finalScreen" class="hidden">
+      <div class="final-guess">
+        <div class="label">我的猜测</div>
+        <div class="word" id="finalWord">—</div>
+        <div class="confidence" id="finalConfidence">confidence: —</div>
+        <div class="actions">
+          <button class="ans-btn primary" id="correctBtn" style="padding:12px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase">✓ 猜对了</button>
+          <button class="ans-btn negative" id="wrongBtn" style="padding:12px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase">✗ 再猜</button>
+          <button class="ans-btn" id="newGameBtn" style="padding:12px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase">↻ 新一局</button>
+        </div>
+      </div>
+      <div class="panel-label">Reasoning · 推理轨迹</div>
+      <div class="history" id="finalHistory"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  没有预设词池 · 没有固定轮数 · 系统自己判断何时有把握 · Powered by Claude
+</footer>
+
+<script>
+const DEFAULT_CONFIG = {
+  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  apiKey: 'sk-a4a2434492444cc59f914134dcb28901',
+  model: 'qwen-plus'
+};
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mindReaderLLMConfig') || '{}');
+    return { ...DEFAULT_CONFIG, ...saved };
+  } catch { return { ...DEFAULT_CONFIG }; }
+}
+function saveConfig(cfg) {
+  localStorage.setItem('mindReaderLLMConfig', JSON.stringify(cfg));
+}
+let llmConfig = loadConfig();
+
+const settingsModal = document.getElementById('settingsModal');
+const cfgBaseUrl = document.getElementById('cfgBaseUrl');
+const cfgApiKey = document.getElementById('cfgApiKey');
+const cfgModel = document.getElementById('cfgModel');
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  cfgBaseUrl.value = llmConfig.baseUrl;
+  cfgApiKey.value = llmConfig.apiKey;
+  cfgModel.value = llmConfig.model;
+  settingsModal.classList.remove('hidden');
+});
+document.getElementById('cfgCancel').addEventListener('click', () => {
+  settingsModal.classList.add('hidden');
+});
+document.getElementById('cfgSave').addEventListener('click', () => {
+  llmConfig = {
+    baseUrl: cfgBaseUrl.value.trim().replace(/\/$/, '') || DEFAULT_CONFIG.baseUrl,
+    apiKey: cfgApiKey.value.trim() || DEFAULT_CONFIG.apiKey,
+    model: cfgModel.value.trim() || DEFAULT_CONFIG.model
+  };
+  saveConfig(llmConfig);
+  settingsModal.classList.add('hidden');
+});
+
+let gameState = {
+  round: 0,
+  history: [],
+  candidates: [],
+  topGuess: null,
+  topConfidence: 0,
+  gameOver: false
+};
+
+const mindMap = document.getElementById('mindMap');
+const mapHint = document.getElementById('mapHint');
+const fogLayer = document.getElementById('fogLayer');
+const questionText = document.getElementById('questionText');
+const reasoningLine = document.getElementById('reasoningLine');
+const answerButtons = document.getElementById('answerButtons');
+const historyEl = document.getElementById('history');
+const roundLabel = document.getElementById('roundLabel');
+const statusLabel = document.getElementById('statusLabel');
+const candCount = document.getElementById('candCount');
+const confidenceFill = document.getElementById('confidenceFill');
+const confidenceText = document.getElementById('confidenceText');
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('restartBtn').addEventListener('click', () => {
+  if (!confirm('确定要重新开始吗?当前进度将丢失。')) return;
+  resetBoard();
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('finalScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+});
+
+const hintInput = document.getElementById('hintInput');
+document.getElementById('hintSubmit').addEventListener('click', submitHint);
+hintInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitHint();
+});
+function submitHint() {
+  const text = hintInput.value.trim();
+  if (!text) return;
+  gameState.history.push({ question: '[用户提示]', answer: text, isHint: true });
+  hintInput.value = '';
+  renderHistory();
+  nextRound();
+}
+
+function resetBoard() {
+  mindMap.querySelectorAll('.candidate').forEach(el => el.remove());
+  mapHint.classList.remove('hidden');
+  fogLayer.style.opacity = '1';
+  confidenceFill.style.width = '0%';
+  confidenceText.textContent = '信心: 0%';
+  candCount.textContent = '候选: —';
+  gameState = { round: 0, history: [], candidates: [], topGuess: null, topConfidence: 0, gameOver: false };
+  historyEl.innerHTML = '';
+}
+document.getElementById('correctBtn').addEventListener('click', () => {
+  alert('🎯 猜对了!\n\n系统通过 ' + gameState.round + ' 轮提问从零推理出你脑中的词。\n没有预设词库,全靠对话建构理解——这就是 Divergent Routing + Possibility Space 的威力。');
+});
+document.getElementById('wrongBtn').addEventListener('click', () => {
+  gameState.history.push({
+    question: '我刚才猜"' + gameState.topGuess + '",对吗?',
+    answer: '不对'
+  });
+  gameState.gameOver = false;
+  document.getElementById('finalScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  nextRound();
+});
+document.getElementById('newGameBtn').addEventListener('click', () => {
+  // 清空地图
+  mindMap.querySelectorAll('.candidate').forEach(el => el.remove());
+  mapHint.classList.remove('hidden');
+  fogLayer.style.opacity = '1';
+  confidenceFill.style.width = '0%';
+  confidenceText.textContent = '信心: 0%';
+  candCount.textContent = '候选: —';
+  document.getElementById('finalScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+});
+
+async function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  gameState = { round: 0, history: [], candidates: [], topGuess: null, topConfidence: 0, gameOver: false };
+  renderHistory();
+  nextRound();
+}
+
+async function nextRound() {
+  gameState.round++;
+  roundLabel.textContent = `Round ${gameState.round}`;
+  statusLabel.textContent = '系统正在构造问题...';
+  questionText.innerHTML = `<div class="thinking-indicator"><span></span><span></span><span></span><span style="margin-left:10px">思考中</span></div>`;
+  reasoningLine.style.display = 'none';
+  answerButtons.innerHTML = '';
+
+  if (gameState.round > 20) {
+    await makeFinalGuess(true);
+    return;
+  }
+
+  try {
+    const result = await askClaudeForNextStep();
+
+    if (result.should_guess) {
+      await makeFinalGuess(false, result.final_guess, result.confidence);
+      return;
+    }
+
+    questionText.textContent = result.question;
+    if (result.reasoning) {
+      reasoningLine.style.display = 'block';
+      reasoningLine.textContent = '// ' + result.reasoning;
+    }
+    renderAnswerButtons(result.answer_options, result.question);
+    statusLabel.textContent = `信心 ${result.confidence}% · 等你回答`;
+
+    if (result.candidates && result.candidates.length > 0) {
+      gameState.candidates = result.candidates;
+      gameState.topGuess = result.candidates[0].word;
+      gameState.topConfidence = result.confidence;
+      renderCandidates(result.candidates, result.confidence);
+    }
+  } catch (err) {
+    questionText.textContent = `出错了: ${err.message} · 请刷新重试`;
+    statusLabel.textContent = 'error';
+    console.error(err);
+  }
+}
+
+async function askClaudeForNextStep() {
+  const historyText = gameState.history.length === 0
+    ? '(这是第一轮,还没有任何信息)'
+    : gameState.history.map((h, i) =>
+        h.isHint
+          ? `第${i+1}条 [用户主动提示,必须作为强约束纳入推理]: ${h.answer}`
+          : `第${i+1}轮 Q: ${h.question}\n     A: ${h.answer}`
+      ).join('\n');
+
+  const prompt = `你在玩"猜词游戏":用户心里想了一个词(可以是任何东西——具体事物、抽象概念、人物、地点、情绪、虚构角色等),你通过问问题来逐步缩小范围。
+
+==== 对话历史 ====
+${historyText}
+
+==== 你的任务 ====
+基于以上历史,输出一个 JSON(且只输出 JSON,不要任何其他文字、不要 markdown 围栏、不要解释):
+
+{
+  "reasoning": "用中文简述当前推理方向(40字内)",
+  "confidence": 0到100的整数(对top-1候选的信心),
+  "top_gap": top-1和top-2的信心差距(0-100整数),
+  "candidates": [
+    {"word": "候选词", "x": 10-90的数, "y": 10-90的数, "weight": 0-1的小数},
+    ... 最多12个,按可能性降序,weight反映相对可能性(总和约等于1)
+  ],
+  "should_guess": true或false,
+  "final_guess": "当should_guess=true,填最终猜测词,否则填空字符串",
+  "question": "当should_guess=false,填下一个问题,否则填空字符串",
+  "answer_options": 当should_guess=false,这是一个字符串数组,候选答案选项
+}
+
+==== 关于 answer_options ====
+根据问题类型选择最合适的选项集,例如:
+- 三选: ["是", "不是", "不确定"]
+- 五选(渐变问题): ["完全是", "偏是", "说不好", "偏不是", "完全不是"]
+- 二元类别: ["真实存在的", "虚构/抽象的"]
+- 多选类别: ["人物", "物品", "动物", "概念", "地点", "其他"]
+- 具体属性: ["活的", "曾经活过", "从未活过"]
+选项数量建议 2-5 个,用户点一个即可。
+
+==== 出题原则 ====
+1. 第一轮必须问最大分辨率的问题(比如"你想的是具体事物还是抽象概念?"或"人、物、还是其他?")
+2. 每个问题要最大化信息增益——无论用户答什么,候选空间都应显著变化
+3. candidates 坐标(x,y)反映语义位置:相近的词坐标相近,不同类别分散开
+4. 第一轮候选应分散在全图(天南海北都有);随信息积累,候选应收敛到某个区域
+5. weight 要诚实反映你的推理,别都设成平均
+6. should_guess=true 的条件:confidence >= 85 AND top_gap >= 30
+7. 一旦达到条件就果断猜测,不要拖延
+8. 如果用户回答"不确定"或"说不好",说明问题不够清晰,下一轮换个角度
+
+直接输出 JSON,务必合法可解析。`;
+
+  const response = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${llmConfig.apiKey}`
+    },
+    body: JSON.stringify({
+      model: llmConfig.model,
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const text = (data.choices?.[0]?.message?.content || '').trim();
+  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+  // 尝试提取 JSON 对象
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  const jsonStr = jsonMatch ? jsonMatch[0] : cleaned;
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error('Parse error:', jsonStr);
+    throw new Error('系统返回格式异常');
+  }
+}
+
+function renderAnswerButtons(options, question) {
+  answerButtons.innerHTML = '';
+  const n = options.length;
+  answerButtons.className = 'answer-buttons';
+  if (n === 2) answerButtons.classList.add('two');
+  else if (n === 5) answerButtons.classList.add('five');
+  else if (n === 4) answerButtons.classList.add('four');
+
+  options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ans-btn';
+    btn.textContent = opt;
+
+    if (n === 3) {
+      if (i === 0) btn.classList.add('primary');
+      if (i === 2) btn.classList.add('negative');
+    } else if (n === 5) {
+      if (i === 0) btn.classList.add('primary');
+      if (i === 4) btn.classList.add('negative');
+    } else if (n === 2) {
+      if (i === 0) btn.classList.add('primary');
+      if (i === 1) btn.classList.add('negative');
+    }
+
+    btn.addEventListener('click', () => handleAnswer(question, opt));
+    answerButtons.appendChild(btn);
+  });
+}
+
+async function handleAnswer(question, answer) {
+  gameState.history.push({ question, answer });
+  renderHistory();
+  nextRound();
+}
+
+function renderHistory() {
+  historyEl.innerHTML = gameState.history.map((h, i) => `
+    <div class="history-item${h.isHint ? ' hint' : ''}">
+      <span style="color:var(--ink-dimmer); font-family:'JetBrains Mono',monospace; font-size:10px;">${i+1}</span>
+      <span class="q">${h.isHint ? '💡 用户提示' : escapeHtml(h.question)}</span>
+      <span class="a">→ ${escapeHtml(h.answer)}</span>
+    </div>
+  `).join('');
+  historyEl.scrollTop = historyEl.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderCandidates(candidates, confidence) {
+  mapHint.classList.add('hidden');
+
+  const fogOpacity = Math.max(0.15, 1 - confidence / 100);
+  fogLayer.style.opacity = fogOpacity;
+
+  const newWords = new Set(candidates.map(c => c.word));
+  const existing = mindMap.querySelectorAll('.candidate');
+  existing.forEach(el => {
+    if (!newWords.has(el.dataset.word)) {
+      el.classList.add('dying');
+      setTimeout(() => el.remove(), 1300);
+    }
+  });
+
+  const sortedCands = [...candidates].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
+  sortedCands.forEach((c, idx) => {
+    const isLeader = idx === 0;
+    const weight = c.weight || 0.3;
+    const isWeak = weight < 0.15;
+    let el = mindMap.querySelector(`.candidate[data-word="${CSS.escape(c.word)}"]`);
+
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'candidate';
+      el.dataset.word = c.word;
+      el.textContent = c.word;
+      el.style.opacity = '0';
+      el.style.left = `${c.x}%`;
+      el.style.top = `${c.y}%`;
+      mindMap.appendChild(el);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.opacity = isWeak ? '0.3' : '0.85';
+        });
+      });
+    }
+
+    el.style.left = `${c.x}%`;
+    el.style.top = `${c.y}%`;
+
+    const fontSize = 12 + weight * 22;
+    el.style.fontSize = `${fontSize}px`;
+    el.style.opacity = isWeak ? '0.3' : (isLeader ? '1' : (0.5 + weight * 0.5));
+
+    el.classList.remove('leader', 'fading', 'dying');
+    if (isLeader && confidence > 40) el.classList.add('leader');
+    if (isWeak) el.classList.add('fading');
+  });
+
+  candCount.textContent = `候选: ${candidates.length}`;
+  confidenceFill.style.width = `${confidence}%`;
+  confidenceText.textContent = `信心: ${confidence}%`;
+}
+
+async function makeFinalGuess(forced, providedGuess, providedConfidence) {
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('finalScreen').classList.remove('hidden');
+
+  const word = providedGuess || gameState.topGuess || '?';
+  const conf = providedConfidence || gameState.topConfidence;
+
+  document.getElementById('finalWord').textContent = word;
+  document.getElementById('finalConfidence').textContent =
+    forced ? `强制结束 · 共 ${gameState.round} 轮` : `信心 ${conf}% · 共 ${gameState.round} 轮`;
+
+  document.getElementById('finalHistory').innerHTML = historyEl.innerHTML;
+
+  const cands = mindMap.querySelectorAll('.candidate');
+  cands.forEach(el => {
+    if (el.dataset.word === word) {
+      el.classList.add('leader');
+      el.style.fontSize = '32px';
+      el.style.opacity = '1';
+    } else {
+      el.classList.add('dying');
+      setTimeout(() => el.remove(), 1300);
+    }
+  });
+
+  gameState.gameOver = true;
+}
+</script>
+
+</body>
+</html>

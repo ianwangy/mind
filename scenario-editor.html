@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Scenario Editor · 场景编辑器</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #08070a;
+  --bg-2: #0f0e13;
+  --bg-3: #18161d;
+  --ink: #f5f1e8;
+  --ink-dim: #8a857a;
+  --ink-dimmer: #4a4640;
+  --accent: #ff6b35;
+  --accent-2: #4ecdc4;
+  --accent-3: #ffd93d;
+  --danger: #d87070;
+  --good: #7dc98a;
+  --grid: rgba(245, 241, 232, 0.05);
+  --grid-strong: rgba(245, 241, 232, 0.12);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Fraunces', serif;
+  min-height: 100vh;
+}
+.hidden { display: none !important; }
+
+/* header */
+header {
+  padding: 22px 40px 18px;
+  border-bottom: 1px solid var(--grid);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.title {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+.title span { color: var(--accent-2); }
+.title em {
+  color: var(--accent);
+  font-style: normal; font-weight: 300;
+  font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: inline-block; margin-left: 10px;
+}
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.settings-btn {
+  background: transparent;
+  border: 1px solid var(--grid-strong);
+  color: var(--ink-dim);
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* shared buttons */
+.btn {
+  background: var(--bg-2);
+  border: 1px solid var(--grid-strong);
+  color: var(--ink);
+  padding: 10px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) { background: var(--accent-3); border-color: var(--accent-3); }
+
+/* layout */
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 480px;
+  min-height: calc(100vh - 180px);
+}
+@media (max-width: 1100px) { .editor-layout { grid-template-columns: 1fr; } }
+
+.form-pane {
+  padding: 28px 40px 120px;
+  overflow-y: auto;
+}
+
+.preview-pane {
+  background: var(--bg-2);
+  border-left: 1px solid var(--grid);
+  padding: 22px 24px;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+.preview-pane h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.preview-code {
+  background: var(--bg);
+  border: 1px solid var(--grid);
+  padding: 14px;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink-dim);
+}
+
+/* AI assist */
+.ai-assist {
+  background: linear-gradient(135deg, rgba(78,205,196,0.10), rgba(255,217,61,0.04));
+  border: 1px solid rgba(78,205,196,0.3);
+  padding: 22px;
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+.ai-assist h2 {
+  font-size: 22px;
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.ai-assist .help {
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin-bottom: 14px;
+  line-height: 1.55;
+}
+.ai-assist textarea {
+  width: 100%;
+  min-height: 72px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 12px;
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  border-radius: 2px;
+  outline: none;
+  resize: vertical;
+}
+.ai-assist textarea:focus { border-color: var(--accent-2); }
+.ai-assist .actions {
+  display: flex; gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.divider-or {
+  color: var(--ink-dimmer);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+/* sections */
+.section {
+  margin-bottom: 22px;
+  padding: 22px;
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  border-radius: 2px;
+}
+.section h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section h3::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.section .sect-hint {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-dimmer);
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+
+/* fields */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 5px;
+}
+.field label .req { color: var(--danger); margin-left: 4px; }
+.field input, .field textarea {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input[type="number"] { font-variant-numeric: tabular-nums; }
+.field input:focus, .field textarea:focus { border-color: var(--accent); }
+.field .hint {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--ink-dimmer);
+  margin-top: 4px;
+  line-height: 1.55;
+}
+.field.missing input, .field.missing textarea {
+  border-color: rgba(216,112,112,0.5);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.field-row.three { grid-template-columns: 60px 1fr 2fr; }
+
+/* dynamic list */
+.sub-list { margin-top: 6px; }
+.sub-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 6px;
+  align-items: start;
+}
+.sub-item.triple { grid-template-columns: 1fr 2fr auto; }
+.sub-item.single { grid-template-columns: 1fr auto; }
+.sub-item input, .sub-item textarea {
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border-radius: 2px;
+  outline: none;
+}
+.sub-item input:focus, .sub-item textarea:focus { border-color: var(--accent); }
+.sub-item button {
+  background: transparent;
+  border: 1px solid var(--grid);
+  color: var(--ink-dim);
+  cursor: pointer;
+  width: 28px; height: 32px;
+  font-size: 14px;
+  border-radius: 2px;
+}
+.sub-item button:hover { color: var(--danger); border-color: var(--danger); }
+.add-btn {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px dashed var(--grid-strong);
+  color: var(--ink-dim);
+  padding: 6px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.add-btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+/* nested card for newStep */
+.nested-card {
+  margin-top: 10px;
+  padding: 14px;
+  background: var(--bg-3);
+  border-left: 2px solid var(--accent-3);
+  border-radius: 2px;
+}
+.nested-card .nested-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+  margin-bottom: 10px;
+}
+
+/* modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--grid);
+  padding: 32px;
+  width: 520px; max-width: 92vw;
+  border-radius: 2px;
+}
+.modal h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 300; font-style: italic;
+  margin-bottom: 6px;
+}
+.modal .modal-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+}
+.form-row { margin-bottom: 16px; }
+.form-row label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.form-row input {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+}
+.form-row input:focus { border-color: var(--accent); }
+.modal-actions {
+  display: flex; gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* bottom bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 480px;
+  padding: 14px 40px;
+  background: rgba(8,7,10,0.95);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--grid-strong);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  z-index: 50;
+}
+@media (max-width: 1100px) { .bottom-bar { right: 0; } }
+.validation-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.validation-badge.ok {
+  color: var(--good);
+  background: rgba(125,201,138,0.1);
+  border: 1px solid rgba(125,201,138,0.3);
+}
+.validation-badge.warn {
+  color: var(--danger);
+  background: rgba(216,112,112,0.1);
+  border: 1px solid rgba(216,112,112,0.3);
+}
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* toast */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 40px;
+  padding: 12px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-2);
+  border-radius: 2px;
+  color: var(--accent-2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  z-index: 200;
+  animation: slideIn 0.3s ease-out;
+}
+.toast.error { border-color: var(--danger); color: var(--danger); }
+@keyframes slideIn {
+  from { transform: translateX(400px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.loading-box {
+  padding: 30px 50px;
+  background: var(--bg-2);
+  border: 1px solid var(--accent-2);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--accent-2);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="title">Scenario <span>Editor</span><em>场景编辑器</em></div>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); letter-spacing:0.2em; margin-top:6px">引导式构造 Intent Fabric 场景配置</div>
+  </div>
+  <div class="header-actions">
+    <button class="settings-btn" id="settingsBtn">⚙ 模型配置</button>
+    <a class="settings-btn" href="ux-prototype.html">← 返回原型</a>
+  </div>
+</header>
+
+<!-- Settings modal -->
+<div id="settingsModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>大语言模型配置</h3>
+    <div class="modal-sub">OpenAI-compatible Endpoint</div>
+    <div class="form-row">
+      <label>Base URL</label>
+      <input type="text" id="cfgBaseUrl">
+    </div>
+    <div class="form-row">
+      <label>API Key</label>
+      <input type="password" id="cfgApiKey">
+    </div>
+    <div class="form-row">
+      <label>Model</label>
+      <input type="text" id="cfgModel">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cfgCancel">取消</button>
+      <button class="btn primary" id="cfgSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="editor-layout">
+  <div class="form-pane">
+
+    <!-- AI 起稿 -->
+    <section class="ai-assist">
+      <h2>✨ 起稿 · 让 AI 帮你搭第一版</h2>
+      <div class="help">
+        用一两句话描述你想做什么场景。描述越具体(风险等级、领域、用户角色、产出类型)越好——
+        LLM 会顺着你的语言填下方 16 个字段,之后你逐项调整。
+      </div>
+      <textarea id="aiPrompt" placeholder="例如: 帮产品经理给客户写新功能邀请邮件,低风险日常任务,希望风格专业但不生硬,输出一封邮件正文..."></textarea>
+      <div class="actions">
+        <button class="btn primary" id="aiGenBtn">🤖 让 LLM 生成草稿</button>
+        <span class="divider-or">— 或 —</span>
+        <input type="file" id="importFile" accept=".md,text/markdown" style="display:none">
+        <button class="btn" id="importBtn">📂 导入已有 .md</button>
+        <span class="divider-or">— 或 —</span>
+        <button class="btn" id="loadDefault">载入 product-launch 作起点</button>
+      </div>
+    </section>
+
+    <!-- === Metadata === -->
+    <section class="section">
+      <h3>Metadata</h3>
+      <div class="sect-hint">场景的"身份卡"。ID 作为 URL 参数,label 显示在界面顶部。</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>ID <span class="req">*</span></label>
+          <input data-path="id" placeholder="product-launch">
+          <div class="hint">URL 安全,短横线分隔,不要空格或中文</div>
+        </div>
+        <div class="field">
+          <label>Label <span class="req">*</span></label>
+          <input data-path="label" placeholder="产品发布策略">
+          <div class="hint">显示在顶部 badge 的中文名</div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Task Name <span class="req">*</span></label>
+          <input data-path="taskName" placeholder="产品发布">
+          <div class="hint">简短任务名,进 prompt(如"产品发布")</div>
+        </div>
+        <div class="field">
+          <label>Task Object <span class="req">*</span></label>
+          <input data-path="taskObject" placeholder="产品发布策略">
+          <div class="hint">产出物名,进 prompt(如"产品发布策略")</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Default Request <span class="req">*</span></label>
+        <input data-path="defaultRequest" placeholder="帮我制定产品发布策略">
+        <div class="hint">L1 输入框的默认模糊请求</div>
+      </div>
+    </section>
+
+    <!-- === L1 Context Cards === -->
+    <section class="section">
+      <h3>Layer 1 · 环境感知卡</h3>
+      <div class="sect-hint">L1 顶部的 3 张 mock 环境卡(日历/最近屏幕/习惯)。contextForPrompt 是喂给 LLM 的精简版。</div>
+
+      <div id="contextCardsList"></div>
+
+      <div class="field" style="margin-top:14px">
+        <label>Context for Prompt · Calendar <span class="req">*</span></label>
+        <input data-path="contextForPrompt.calendar" placeholder="下周四 14:00 团队 roadmap 评审">
+      </div>
+      <div class="field">
+        <label>Context for Prompt · Screens <span class="req">*</span></label>
+        <input data-path="contextForPrompt.screens" placeholder="Linear 定价页, Notion 竞品分析">
+      </div>
+      <div class="field">
+        <label>Context for Prompt · Habits <span class="req">*</span></label>
+        <input data-path="contextForPrompt.habits" placeholder="偏好简洁文档 · 优先级 + 时间线模板">
+      </div>
+    </section>
+
+    <!-- === L1 Intent Schema === -->
+    <section class="section">
+      <h3>Layer 1 · 意图 Schema</h3>
+      <div class="sect-hint">
+        <strong style="color:var(--accent-3)">最重要的字段。</strong>
+        你列 3-5 个 key,LLM 会按这些 key 组织它对用户意图的理解。
+        每个 value 是对 LLM 的字段约束(字数、格式、允许为空)。
+      </div>
+
+      <div id="intentSchemaList" class="sub-list"></div>
+      <button class="add-btn" id="addIntentKey">+ 添加一个意图字段</button>
+    </section>
+
+    <!-- === L2 Axes === -->
+    <section class="section">
+      <h3>Layer 2 · 坐标轴</h3>
+      <div class="sect-hint">两条"正交对立"的张力轴。例:"保守 / 激进"对立;"清晰 / 专业"不对立,别混。</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>X 轴 (左 / 右) <span class="req">*</span></label>
+          <input data-path="defaultAxes.x" placeholder="即时收入 / 长期品牌">
+        </div>
+        <div class="field">
+          <label>Y 轴 (下 / 上) <span class="req">*</span></label>
+          <input data-path="defaultAxes.y" placeholder="激进扩张 / 稳健防守">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Axis Examples <span class="req">*</span></label>
+        <input data-path="axisExamples" placeholder='"即时收入 / 长期品牌","激进扩张 / 稳健防守"'>
+        <div class="hint">给 LLM 的范例,LLM 会据此推断类似风格的轴</div>
+      </div>
+
+      <div class="field">
+        <label>Draft Sections · 大而全初稿维度 <span class="req">*</span></label>
+        <input data-path="draftSections" placeholder="目标受众定位、核心信息、时间线、主要渠道、风险控制、成功指标">
+        <div class="hint">删减式塑造的初稿要覆盖哪些维度,用中文顿号分隔</div>
+      </div>
+    </section>
+
+    <!-- === L3 Plan === -->
+    <section class="section">
+      <h3>Layer 3 · 编排参数</h3>
+      <div class="sect-hint">L3 生成计划的提示线索。步数别太多,流程是该领域的典型骨架动词。</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Plan Size Hint <span class="req">*</span></label>
+          <input data-path="planSizeHint" placeholder="5-7 步">
+        </div>
+        <div class="field">
+          <label>Plan Flow Hint <span class="req">*</span></label>
+          <input data-path="planFlowHint" placeholder="调研 → 起草 → 审核 → 执行 → 度量">
+        </div>
+      </div>
+    </section>
+
+    <!-- === L3 Conflicts === -->
+    <section class="section">
+      <h3>Layer 3 · 协作冲突 (mock)</h3>
+      <div class="sect-hint">L3 侧栏展示两张冲突卡:机构规则 + 另一个 AI 子代理的建议。本场景若无冲突,institutionalRule 写"(本场景无机构规则冲突)"即可。</div>
+
+      <div class="field">
+        <label>Institutional Rule <span class="req">*</span></label>
+        <textarea rows="2" data-path="conflicts.institutionalRule" placeholder="销售部规则要求:发布前须经法务审核..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Sub-agent Suggestion Text <span class="req">*</span></label>
+        <input data-path="conflicts.subAgentSuggestion.text" placeholder="另一位代理建议同时启动 A/B 测试...">
+      </div>
+
+      <div class="nested-card">
+        <div class="nested-label">Sub-agent 建议接纳后新增的步骤</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>ID</label>
+            <input data-path="conflicts.subAgentSuggestion.newStep.id" placeholder="S-AB">
+          </div>
+          <div class="field">
+            <label>Title</label>
+            <input data-path="conflicts.subAgentSuggestion.newStep.title" placeholder="并行 A/B 测试">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Description</label>
+          <input data-path="conflicts.subAgentSuggestion.newStep.desc" placeholder="上线同时启动 A/B 测试...">
+        </div>
+
+        <div class="field">
+          <label>Sources</label>
+          <div id="newStepSources" class="sub-list"></div>
+          <button class="add-btn" id="addSource">+ 添加来源</button>
+        </div>
+
+        <div class="field">
+          <label>Assumptions</label>
+          <div id="newStepAssumptions" class="sub-list"></div>
+          <button class="add-btn" id="addAssumption">+ 添加假设</button>
+        </div>
+
+        <div class="field">
+          <label>Permissions</label>
+          <div id="newStepPermissions" class="sub-list"></div>
+          <button class="add-btn" id="addPermission">+ 添加权限</button>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Duration Days</label>
+            <input type="number" min="1" data-path="conflicts.subAgentSuggestion.newStep.duration_days">
+          </div>
+          <div class="field">
+            <label>Artifact Hint</label>
+            <input data-path="conflicts.subAgentSuggestion.newStep.artifact_hint" placeholder="A/B 测试计划与指标定义">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === L4 Timeline === -->
+    <section class="section">
+      <h3>Layer 4 · 时间轴刻度</h3>
+      <div class="sect-hint">Gantt 总跨度和刻度间隔。短任务用小数字(如写邮件 3 天 / 1 天刻度),长任务用大的(如产品发布 30 天 / 5 天刻度)。</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Timeline Total Days <span class="req">*</span></label>
+          <input type="number" min="1" data-path="timelineTotalDays">
+        </div>
+        <div class="field">
+          <label>Timeline Day Step <span class="req">*</span></label>
+          <input type="number" min="1" data-path="timelineDayStep">
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="preview-pane">
+    <h3>
+      <span>Live Preview · .md</span>
+      <span id="byteCount" style="color:var(--ink-dimmer); font-size:9px">0 B</span>
+    </h3>
+    <pre class="preview-code" id="previewCode">—</pre>
+  </aside>
+</div>
+
+<div class="bottom-bar">
+  <div id="validationBadge" class="validation-badge warn">检查中...</div>
+  <div class="btn-group">
+    <button class="btn" id="copyBtn">📋 复制 .md</button>
+    <button class="btn" id="downloadBtn">⬇ 下载 .md</button>
+    <button class="btn primary" id="previewBtn">🚀 试跑这个场景 →</button>
+  </div>
+</div>
+
+<script>
+/* ============ config + callLLM (同 ux-prototype.html) ============ */
+const DEFAULT_CONFIG = {
+  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  apiKey: 'sk-a4a2434492444cc59f914134dcb28901',
+  model: 'qwen-plus'
+};
+function loadConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mindReaderLLMConfig') || '{}');
+    return { ...DEFAULT_CONFIG, ...saved };
+  } catch { return { ...DEFAULT_CONFIG }; }
+}
+function saveConfig(cfg) {
+  localStorage.setItem('mindReaderLLMConfig', JSON.stringify(cfg));
+}
+let llmConfig = loadConfig();
+
+async function callLLM(prompt, { maxTokens = 800, jsonMode = false } = {}) {
+  const body = {
+    model: llmConfig.model,
+    max_tokens: maxTokens,
+    messages: [{ role: 'user', content: prompt }]
+  };
+  if (jsonMode) body.response_format = { type: 'json_object' };
+  const response = await fetch(`${llmConfig.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${llmConfig.apiKey}` },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API ${response.status}: ${errText.slice(0, 200)}`);
+  }
+  const data = await response.json();
+  return (data.choices?.[0]?.message?.content || '').trim();
+}
+
+function extractJSON(text) {
+  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  return JSON.parse(m ? m[0] : cleaned);
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Settings modal */
+const settingsModal = document.getElementById('settingsModal');
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('cfgBaseUrl').value = llmConfig.baseUrl;
+  document.getElementById('cfgApiKey').value = llmConfig.apiKey;
+  document.getElementById('cfgModel').value = llmConfig.model;
+  settingsModal.classList.remove('hidden');
+});
+document.getElementById('cfgCancel').addEventListener('click', () => settingsModal.classList.add('hidden'));
+document.getElementById('cfgSave').addEventListener('click', () => {
+  llmConfig = {
+    baseUrl: document.getElementById('cfgBaseUrl').value.trim().replace(/\/$/, '') || DEFAULT_CONFIG.baseUrl,
+    apiKey: document.getElementById('cfgApiKey').value.trim() || DEFAULT_CONFIG.apiKey,
+    model: document.getElementById('cfgModel').value.trim() || DEFAULT_CONFIG.model
+  };
+  saveConfig(llmConfig);
+  settingsModal.classList.add('hidden');
+});
+
+/* ============ Form State ============ */
+const PRODUCT_LAUNCH_DEFAULT = {
+  id: 'product-launch',
+  label: '产品发布策略',
+  taskName: '产品发布',
+  taskObject: '产品发布策略',
+  defaultRequest: '帮我制定产品发布策略',
+  contextCards: [
+    { icon: '📅', label: 'Calendar',       text: '下周四 14:00 · 团队 roadmap 评审' },
+    { icon: '🖥', label: 'Recent Screens', text: 'Linear 定价页 · Notion 竞品分析文档' },
+    { icon: '🕐', label: 'Habits',         text: '偏好简洁文档 · 常用"优先级 + 时间线"模板' }
+  ],
+  contextForPrompt: {
+    calendar: '下周四 14:00 团队 roadmap 评审',
+    screens:  'Linear 定价页, Notion 竞品分析',
+    habits:   '偏好简洁文档 · 优先级 + 时间线模板'
+  },
+  intentSchema: {
+    goal:     '用一句话概括当前对目标的理解(16字内)',
+    audience: '目标对象(12字内,未知则空)',
+    horizon:  '时间视野(如"1-3个月",未知则空)',
+    priority: '首要考量(12字内,未知则空)'
+  },
+  defaultAxes: { x: '即时收入 / 长期品牌', y: '激进扩张 / 稳健防守' },
+  axisExamples: '"即时收入 / 长期品牌","激进扩张 / 稳健防守"',
+  draftSections: '目标受众定位、核心信息、时间线、主要渠道、风险控制、成功指标',
+  planSizeHint: '5-7 步',
+  planFlowHint: '调研 → 起草 → 审核 → 执行 → 度量',
+  conflicts: {
+    institutionalRule: '销售部规则要求：发布前须经法务审核。审计受限模式下,"法务"相关步骤无法跳过。',
+    subAgentSuggestion: {
+      text: '另一位代理建议同时启动 A/B 测试以度量效果。',
+      newStep: {
+        id: 'S-AB',
+        title: '并行 A/B 测试',
+        desc: '上线同时启动 A/B 测试,度量两种文案的转化差异',
+        sources: [{ name: '子代理建议', detail: '来自协同 AI 的并行测试提案' }],
+        assumptions: [{ key: '样本', value: '每组 ≥ 1k 用户' }],
+        permissions: ['接入 A/B 测试平台'],
+        duration_days: 7,
+        artifact_hint: 'A/B 测试计划与指标定义'
+      }
+    }
+  },
+  timelineTotalDays: 30,
+  timelineDayStep: 5
+};
+
+const EMPTY_FORM = {
+  id: '', label: '', taskName: '', taskObject: '', defaultRequest: '',
+  contextCards: [
+    { icon: '📅', label: 'Calendar',       text: '' },
+    { icon: '🖥', label: 'Recent Screens', text: '' },
+    { icon: '🕐', label: 'Habits',         text: '' }
+  ],
+  contextForPrompt: { calendar: '', screens: '', habits: '' },
+  intentSchema: { goal: '', audience: '', horizon: '', priority: '' },
+  defaultAxes: { x: '', y: '' },
+  axisExamples: '',
+  draftSections: '',
+  planSizeHint: '5-7 步',
+  planFlowHint: '',
+  conflicts: {
+    institutionalRule: '',
+    subAgentSuggestion: {
+      text: '',
+      newStep: {
+        id: '', title: '', desc: '',
+        sources: [{ name: '', detail: '' }],
+        assumptions: [{ key: '', value: '' }],
+        permissions: [''],
+        duration_days: 3,
+        artifact_hint: ''
+      }
+    }
+  },
+  timelineTotalDays: 30,
+  timelineDayStep: 5
+};
+
+let form = JSON.parse(JSON.stringify(EMPTY_FORM));
+
+/* ============ path helpers ============ */
+function getPath(obj, path) {
+  return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+}
+function setPath(obj, path, value) {
+  const keys = path.split('.');
+  const last = keys.pop();
+  const parent = keys.reduce((o, k) => o[k] = o[k] || {}, obj);
+  parent[last] = value;
+}
+
+/* ============ Render form from state ============ */
+function renderForm() {
+  // simple path inputs
+  document.querySelectorAll('[data-path]').forEach(el => {
+    const v = getPath(form, el.dataset.path);
+    if (el.type === 'number') el.value = v ?? '';
+    else el.value = v ?? '';
+  });
+  renderContextCards();
+  renderIntentSchema();
+  renderDynamicList('newStepSources', form.conflicts.subAgentSuggestion.newStep.sources, 'src');
+  renderDynamicList('newStepAssumptions', form.conflicts.subAgentSuggestion.newStep.assumptions, 'asm');
+  renderDynamicList('newStepPermissions', form.conflicts.subAgentSuggestion.newStep.permissions, 'perm');
+  renderPreview();
+  validate();
+}
+
+function renderContextCards() {
+  const el = document.getElementById('contextCardsList');
+  el.innerHTML = form.contextCards.map((c, i) => `
+    <div class="sub-item triple" data-cc="${i}">
+      <input data-cc-field="icon" value="${escapeHtml(c.icon)}" placeholder="📅">
+      <input data-cc-field="label" value="${escapeHtml(c.label)}" placeholder="Calendar">
+      <input data-cc-field="text" value="${escapeHtml(c.text)}" placeholder="下周四 14:00 · 团队 roadmap 评审">
+      <span></span>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-cc]').forEach(row => {
+    const i = parseInt(row.dataset.cc);
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        form.contextCards[i][inp.dataset.ccField] = inp.value;
+        renderPreview(); validate();
+      });
+    });
+  });
+}
+
+function renderIntentSchema() {
+  const el = document.getElementById('intentSchemaList');
+  const entries = Object.entries(form.intentSchema);
+  el.innerHTML = entries.map(([key, desc], i) => `
+    <div class="sub-item" data-is="${i}">
+      <input data-is-field="key" value="${escapeHtml(key)}" placeholder="goal">
+      <input data-is-field="desc" value="${escapeHtml(desc)}" placeholder="用一句话概括...(16字内)">
+      <button data-is-remove="${i}">×</button>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-is]').forEach(row => {
+    const i = parseInt(row.dataset.is);
+    const oldKey = entries[i][0];
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const newKey = row.querySelector('[data-is-field="key"]').value;
+        const newDesc = row.querySelector('[data-is-field="desc"]').value;
+        // rebuild to preserve order
+        const rebuilt = {};
+        entries.forEach(([k, v], idx) => {
+          if (idx === i) rebuilt[newKey || `_${i}`] = newDesc;
+          else rebuilt[k] = v;
+        });
+        form.intentSchema = rebuilt;
+        renderPreview(); validate();
+      });
+    });
+    row.querySelector('[data-is-remove]').addEventListener('click', () => {
+      const rebuilt = {};
+      entries.forEach(([k, v], idx) => { if (idx !== i) rebuilt[k] = v; });
+      form.intentSchema = rebuilt;
+      renderIntentSchema();
+      renderPreview(); validate();
+    });
+  });
+}
+
+function renderDynamicList(elId, arr, kind) {
+  const el = document.getElementById(elId);
+  el.innerHTML = arr.map((item, i) => {
+    if (kind === 'src') {
+      return `<div class="sub-item" data-idx="${i}">
+        <input data-field="name" value="${escapeHtml(item.name)}" placeholder="短名">
+        <input data-field="detail" value="${escapeHtml(item.detail)}" placeholder="详情">
+        <button data-remove="${i}">×</button>
+      </div>`;
+    } else if (kind === 'asm') {
+      return `<div class="sub-item" data-idx="${i}">
+        <input data-field="key" value="${escapeHtml(item.key)}" placeholder="假设名">
+        <input data-field="value" value="${escapeHtml(item.value)}" placeholder="假设值">
+        <button data-remove="${i}">×</button>
+      </div>`;
+    } else {
+      return `<div class="sub-item single" data-idx="${i}">
+        <input data-field="_" value="${escapeHtml(item)}" placeholder="权限描述">
+        <button data-remove="${i}">×</button>
+      </div>`;
+    }
+  }).join('');
+  el.querySelectorAll('[data-idx]').forEach(row => {
+    const i = parseInt(row.dataset.idx);
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        if (kind === 'perm') arr[i] = inp.value;
+        else arr[i][inp.dataset.field] = inp.value;
+        renderPreview(); validate();
+      });
+    });
+    row.querySelector('[data-remove]').addEventListener('click', () => {
+      arr.splice(i, 1);
+      renderDynamicList(elId, arr, kind);
+      renderPreview(); validate();
+    });
+  });
+}
+
+/* Add buttons */
+document.getElementById('addIntentKey').addEventListener('click', () => {
+  form.intentSchema[`field${Object.keys(form.intentSchema).length + 1}`] = '';
+  renderIntentSchema(); renderPreview(); validate();
+});
+document.getElementById('addSource').addEventListener('click', () => {
+  form.conflicts.subAgentSuggestion.newStep.sources.push({ name: '', detail: '' });
+  renderDynamicList('newStepSources', form.conflicts.subAgentSuggestion.newStep.sources, 'src');
+  renderPreview(); validate();
+});
+document.getElementById('addAssumption').addEventListener('click', () => {
+  form.conflicts.subAgentSuggestion.newStep.assumptions.push({ key: '', value: '' });
+  renderDynamicList('newStepAssumptions', form.conflicts.subAgentSuggestion.newStep.assumptions, 'asm');
+  renderPreview(); validate();
+});
+document.getElementById('addPermission').addEventListener('click', () => {
+  form.conflicts.subAgentSuggestion.newStep.permissions.push('');
+  renderDynamicList('newStepPermissions', form.conflicts.subAgentSuggestion.newStep.permissions, 'perm');
+  renderPreview(); validate();
+});
+
+/* Bind simple path inputs */
+document.querySelectorAll('[data-path]').forEach(el => {
+  el.addEventListener('input', () => {
+    let value = el.value;
+    if (el.type === 'number') value = value === '' ? '' : Number(value);
+    setPath(form, el.dataset.path, value);
+    renderPreview(); validate();
+  });
+});
+
+/* ============ Preview ============ */
+function generateMd(cfg) {
+  return `# ${cfg.label || '<未命名场景>'} · Scenario Definition
+
+> 由 scenario-editor.html 生成 · 可继续手动编辑
+
+## Metadata
+
+| 字段 | 值 |
+|---|---|
+| **ID** | \`${cfg.id || '<TBD>'}\` |
+| **Label** | ${cfg.label || '<TBD>'} |
+| **Task Name** | ${cfg.taskName || '<TBD>'} |
+| **Task Object** | ${cfg.taskObject || '<TBD>'} |
+
+---
+
+## Scenario Config
+
+以下 **唯一** JSON 代码块会被 \`ux-prototype.html\` 解析。
+
+\`\`\`json
+${JSON.stringify(cfg, null, 2)}
+\`\`\`
+
+---
+
+## 设计注记
+
+<!-- 留给开发者回答以下问题: -->
+
+- **为什么选这 2 条轴**：<TODO>
+- **为什么是这么多步**：<TODO>
+- **L3 在本场景有意义吗**：<TODO>
+- **L4 时间轴单位合适吗**：<TODO>
+
+## 本场景未被框架覆盖的部分
+
+<!-- 如果你在写场景时遇到当前框架处理不了的东西,记在这里。见 README.md -->
+
+- <无 / 有且是: ...>
+`;
+}
+
+function renderPreview() {
+  const md = generateMd(form);
+  document.getElementById('previewCode').textContent = md;
+  document.getElementById('byteCount').textContent = `${new Blob([md]).size} B`;
+}
+
+/* ============ Validation ============ */
+function validate() {
+  const missing = [];
+  if (!form.id) missing.push('id');
+  if (!form.label) missing.push('label');
+  if (!form.taskName) missing.push('taskName');
+  if (!form.taskObject) missing.push('taskObject');
+  if (!form.defaultRequest) missing.push('defaultRequest');
+  if (!form.contextForPrompt.calendar) missing.push('contextForPrompt.calendar');
+  if (!form.contextForPrompt.screens) missing.push('contextForPrompt.screens');
+  if (!form.contextForPrompt.habits) missing.push('contextForPrompt.habits');
+  if (Object.keys(form.intentSchema).filter(k => k && form.intentSchema[k]).length < 2) missing.push('intentSchema (≥2)');
+  if (!form.defaultAxes.x) missing.push('defaultAxes.x');
+  if (!form.defaultAxes.y) missing.push('defaultAxes.y');
+  if (!form.axisExamples) missing.push('axisExamples');
+  if (!form.draftSections) missing.push('draftSections');
+  if (!form.planSizeHint) missing.push('planSizeHint');
+  if (!form.planFlowHint) missing.push('planFlowHint');
+  if (!form.conflicts.institutionalRule) missing.push('conflicts.institutionalRule');
+  if (!form.conflicts.subAgentSuggestion.text) missing.push('conflicts.subAgentSuggestion.text');
+  if (!form.timelineTotalDays) missing.push('timelineTotalDays');
+  if (!form.timelineDayStep) missing.push('timelineDayStep');
+
+  const badge = document.getElementById('validationBadge');
+  if (missing.length) {
+    badge.className = 'validation-badge warn';
+    badge.textContent = `⚠ 缺 ${missing.length} 个字段: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`;
+  } else {
+    badge.className = 'validation-badge ok';
+    badge.textContent = '✓ 所有字段已填';
+  }
+  document.getElementById('previewBtn').disabled = missing.length > 0;
+  document.getElementById('downloadBtn').disabled = missing.length > 0;
+  return missing;
+}
+
+/* ============ Toast ============ */
+function toast(msg, kind) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind === 'error' ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.4s'; }, 2000);
+  setTimeout(() => t.remove(), 2600);
+}
+
+function showLoading(msg) {
+  const ol = document.createElement('div');
+  ol.className = 'loading-overlay';
+  ol.id = 'loadingOverlay';
+  ol.innerHTML = `<div class="loading-box">${escapeHtml(msg)}</div>`;
+  document.body.appendChild(ol);
+}
+function hideLoading() {
+  const ol = document.getElementById('loadingOverlay');
+  if (ol) ol.remove();
+}
+
+/* ============ AI 起稿 ============ */
+document.getElementById('aiGenBtn').addEventListener('click', async () => {
+  const desc = document.getElementById('aiPrompt').value.trim();
+  if (!desc) { toast('先在上方描述你的场景', 'error'); return; }
+
+  showLoading('LLM 正在为你生成场景配置...');
+  const prompt = `你要帮开发者为 "Intent Fabric" 框架生成一个场景配置。Intent Fabric 是一个 AI 原生 UX 框架,有 4 层:
+- Layer 1: 苏格拉底式采访(诊断问题)
+- Layer 2: 语义拓扑图(2D 探索)
+- Layer 3: 多步编排(带权限/数据来源/假设)
+- Layer 4: 时间轴直接操纵
+
+场景配置用来把这个框架应用到具体领域。
+
+用户的场景描述:
+"""
+${desc}
+"""
+
+请输出符合以下 schema 的 JSON(只输出 JSON,不要 markdown 围栏,不要任何解释):
+
+{
+  "id": "url-safe-id(短横线分隔)",
+  "label": "中文名",
+  "taskName": "简短任务名(<8字)",
+  "taskObject": "产出物名(<12字)",
+  "defaultRequest": "用户的默认模糊请求",
+  "contextCards": [
+    {"icon":"📅","label":"Calendar","text":"贴合场景的日历事件"},
+    {"icon":"🖥","label":"Recent Screens","text":"贴合场景的最近屏幕"},
+    {"icon":"🕐","label":"Habits","text":"贴合场景的用户习惯"}
+  ],
+  "contextForPrompt": {
+    "calendar":"同上但更简(喂给 LLM)",
+    "screens":"...",
+    "habits":"..."
+  },
+  "intentSchema": {
+    "key1":"对 LLM 的字段约束(字数限制、允许空)",
+    "key2":"...",
+    "key3":"...",
+    "key4":"(可选)..."
+  },
+  "defaultAxes": {"x":"左端 / 右端","y":"下端 / 上端"},
+  "axisExamples": "\\"示例 1 左 / 右\\",\\"示例 2 下 / 上\\"",
+  "draftSections": "用中文顿号分隔的维度列表",
+  "planSizeHint": "5-7 步",
+  "planFlowHint": "动词1 → 动词2 → 动词3 → 动词4 → 动词5",
+  "conflicts": {
+    "institutionalRule": "机构/合规规则 或 '(本场景无机构规则冲突)'",
+    "subAgentSuggestion": {
+      "text":"另一位 AI 代理的建议文本",
+      "newStep": {
+        "id":"S-EXTRA",
+        "title":"<16字",
+        "desc":"<40字",
+        "sources":[{"name":"短名","detail":"详情"}],
+        "assumptions":[{"key":"键","value":"值"}],
+        "permissions":["权限"],
+        "duration_days":数字,
+        "artifact_hint":"产出物名"
+      }
+    }
+  },
+  "timelineTotalDays": 合理的总天数,
+  "timelineDayStep": 合理的刻度
+}
+
+原则:
+1. intentSchema 选 3-5 个该领域核心意图字段,每个 value 对 LLM 严格约束
+2. defaultAxes 两条必须真对立,贴合领域
+3. planFlowHint 是该领域典型流程的 5 个关键动词
+4. 所有字段都针对 "${desc}" 定制
+5. 低风险日常任务 → institutionalRule 可填"(本场景无机构规则冲突)"
+6. 输出必须是合法 JSON,无注释无尾逗号`;
+
+  try {
+    const text = await callLLM(prompt, { maxTokens: 2500, jsonMode: true });
+    const cfg = extractJSON(text);
+    // 用 LLM 结果覆盖 form,保留未提供字段的默认值
+    form = { ...EMPTY_FORM, ...cfg };
+    // 确保 contextCards 有 3 条
+    if (!Array.isArray(form.contextCards) || form.contextCards.length < 3) {
+      form.contextCards = EMPTY_FORM.contextCards;
+    }
+    // 确保 newStep 子字段完整
+    const ns = form.conflicts?.subAgentSuggestion?.newStep || {};
+    form.conflicts.subAgentSuggestion.newStep = {
+      id: ns.id || '', title: ns.title || '', desc: ns.desc || '',
+      sources: ns.sources || [{ name: '', detail: '' }],
+      assumptions: ns.assumptions || [{ key: '', value: '' }],
+      permissions: ns.permissions || [''],
+      duration_days: ns.duration_days || 3,
+      artifact_hint: ns.artifact_hint || ''
+    };
+    renderForm();
+    toast('✨ 草稿已生成 · 向下滚动查看并调整');
+  } catch (err) {
+    toast(`生成失败: ${err.message}`, 'error');
+    console.error(err);
+  } finally {
+    hideLoading();
+  }
+});
+
+/* ============ Import .md ============ */
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const match = text.match(/```json\s*([\s\S]*?)```/);
+    if (!match) throw new Error('找不到 ```json``` 代码块');
+    const cfg = JSON.parse(match[1]);
+    form = { ...EMPTY_FORM, ...cfg };
+    renderForm();
+    toast(`✓ 已导入 ${file.name}`);
+  } catch (err) {
+    toast(`导入失败: ${err.message}`, 'error');
+  }
+});
+
+/* ============ Load default ============ */
+document.getElementById('loadDefault').addEventListener('click', () => {
+  form = JSON.parse(JSON.stringify(PRODUCT_LAUNCH_DEFAULT));
+  renderForm();
+  toast('✓ 已载入 product-launch 作起点');
+});
+
+/* ============ Copy / Download / Preview ============ */
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const md = generateMd(form);
+  try {
+    await navigator.clipboard.writeText(md);
+    toast('✓ .md 已复制到剪贴板');
+  } catch (err) {
+    toast('复制失败: ' + err.message, 'error');
+  }
+});
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const md = generateMd(form);
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${form.id || 'scenario'}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`✓ 已下载 ${a.download} · 放到 scenarios/ 目录下即可用`);
+});
+
+document.getElementById('previewBtn').addEventListener('click', () => {
+  const missing = validate();
+  if (missing.length) { toast('还有字段没填', 'error'); return; }
+  localStorage.setItem('scenarioPreview', JSON.stringify(form));
+  window.open('ux-prototype.html?scenario=_preview', '_blank');
+});
+
+/* ============ Init ============ */
+renderForm();
+</script>
+</body>
+</html>

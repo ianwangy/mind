@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Semantic Topography × Divergent Routing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg-2: #141414;
+    --bg-3: #1d1d1d;
+    --ink: #f5f1e8;
+    --ink-dim: #8a857a;
+    --ink-dimmer: #4a4640;
+    --accent: #ff6b35;
+    --accent-2: #4ecdc4;
+    --accent-3: #ffd93d;
+    --grid: rgba(245, 241, 232, 0.06);
+    --grid-strong: rgba(245, 241, 232, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,107,53,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(78,205,196,0.06) 0%, transparent 50%);
+  }
+
+  header {
+    padding: 28px 40px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--grid);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .title span { color: var(--accent); font-style: italic; }
+  .title em { color: var(--accent-2); font-style: italic; font-weight: 600; }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--grid-strong);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    background: transparent;
+    color: var(--ink-dim);
+    border: none;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .mode-btn:hover:not(.active) {
+    color: var(--ink);
+    background: var(--bg-2);
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    padding: 40px;
+    max-width: 1700px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+  .panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* ===== Topography ===== */
+  .topography {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--bg-2);
+    border: 1px solid var(--grid);
+    border-radius: 2px;
+    cursor: crosshair;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 10% 10%;
+    pointer-events: none;
+  }
+
+  .heat {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(255,107,53,0.22), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(255,200,100,0.20), transparent 45%),
+      radial-gradient(circle at 15% 85%, rgba(78,205,196,0.20), transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(180,120,220,0.20), transparent 45%);
+    pointer-events: none;
+  }
+
+  .trail-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .anchor {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    pointer-events: none;
+    max-width: 40%;
+  }
+  .anchor.tl { top: 10px; left: 10px; }
+  .anchor.tr { top: 10px; right: 10px; text-align: right; }
+  .anchor.bl { bottom: 10px; left: 10px; }
+  .anchor.br { bottom: 10px; right: 10px; text-align: right; }
+
+  .axis-label {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .axis-x { bottom: -30px; left: 50%; transform: translateX(-50%); }
+  .axis-y { top: 50%; left: -30px; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+
+  .cursor-dot {
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: var(--accent);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 24px rgba(255,107,53,0.6);
+    transition: background 0.2s, left 0.6s cubic-bezier(.4,0,.2,1), top 0.6s cubic-bezier(.4,0,.2,1);
+    z-index: 10;
+  }
+  .cursor-dot.loading { background: var(--accent-2); animation: pulse 0.8s infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(78,205,196,0.6); }
+    50% { box-shadow: 0 0 40px rgba(78,205,196,0.9); }
+  }
+
+  .probe-dot {
+    position: absolute;
+    width: 12px; height: 12px;
+    border: 1.5px solid var(--accent-3);
+    border-radius: 50%;
+    background: transparent;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 5;
+    animation: probePulse 1.8s infinite;
+  }
+  @keyframes probePulse {
+    0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+  }
+
+  .trail-point {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--ink-dim);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .trail-point.recent { background: var(--accent); opacity: 0.8; }
+
+  .coords {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    pointer-events: none;
+    background: rgba(10,10,10,0.7);
+    padding: 4px 10px;
+    border-radius: 2px;
+    z-index: 4;
+  }
+
+  /* ===== 右侧面板 ===== */
+  .right-panel { display: flex; flex-direction: column; }
+
+  .axes-config {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .axis-input { display: flex; flex-direction: column; gap: 5px; }
+  .axis-input label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+  .axis-input input, .topic-input textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--grid);
+    color: var(--ink);
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .axis-input input:focus, .topic-input textarea:focus { border-color: var(--accent); }
+  .topic-input { margin-bottom: 18px; }
+  .topic-input textarea {
+    width: 100%;
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 50px;
+  }
+
+  /* ===== 输出:Topography 模式 ===== */
+  .output-box {
+    flex: 1;
+    background: var(--bg-2);
+    border: 1px solid var(--grid);
+    padding: 28px;
+    border-radius: 2px;
+    min-height: 240px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .output-text {
+    font-size: 19px;
+    line-height: 1.55;
+    font-weight: 300;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    min-height: 100px;
+  }
+
+  .output-meta {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--grid);
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .loading-bar {
+    position: absolute;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    width: 0;
+  }
+  .loading-bar.active { width: 100%; transition: width 8s cubic-bezier(0.1, 0.9, 0.2, 1); }
+
+  /* ===== 输出:Divergent 模式 ===== */
+  .divergent-container { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+
+  .divergent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--grid-strong);
+    border-radius: 2px;
+  }
+  .divergent-header .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .divergent-header .round-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .variant-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .variant-card {
+    background: var(--bg-2);
+    border: 1px solid var(--grid);
+    border-radius: 2px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    min-height: 180px;
+  }
+  .variant-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,107,53,0.12);
+  }
+  .variant-card.loading {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .variant-card::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 10px; right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .variant-card.chosen {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(255,107,53,0.08) 0%, transparent 100%);
+  }
+
+  .variant-direction {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--accent-2);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .variant-text {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 300;
+    flex: 1;
+  }
+
+  .variant-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--grid);
+  }
+  .v-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--grid-strong);
+    color: var(--ink-dim);
+    padding: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .v-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .divergent-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid var(--grid-strong);
+    color: var(--ink);
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.primary { background: var(--accent-2); color: var(--bg); border-color: var(--accent-2); font-weight: 600; }
+  .ctrl-btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+  /* ===== 探索历史 ===== */
+  .history-bar {
+    padding: 14px 40px;
+    background: var(--bg-2);
+    border-top: 1px solid var(--grid);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .history-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .history-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    padding: 6px 10px;
+    background: var(--bg-3);
+    border: 1px solid var(--grid);
+    border-radius: 2px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .history-item:hover { color: var(--accent); border-color: var(--accent); }
+  .history-item.current { color: var(--accent); border-color: var(--accent); }
+
+  footer {
+    padding: 18px 40px 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-dim);
+    letter-spacing: 0.15em;
+    text-align: center;
+    border-top: 1px solid var(--grid);
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="title">Semantic <span>Topography</span> × <em>Divergent</em> Routing</div>
+    <div class="subtitle" style="margin-top:4px">导航 · 发散 · 识别 → 真正的意图探索</div>
+  </div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="topo">Topography</button>
+    <button class="mode-btn" data-mode="diverge">Divergent</button>
+  </div>
+</header>
+
+<main>
+  <!-- 左:地形图(永久显示) -->
+  <section>
+    <div class="panel-label">Exploration Space</div>
+    <div class="topography" id="topo">
+      <div class="heat"></div>
+      <div class="grid-lines"></div>
+      <svg class="trail-svg" id="trailSvg"></svg>
+      <div class="anchor tl" id="anchorTL">专业 · 严肃</div>
+      <div class="anchor tr" id="anchorTR">专业 · 俏皮</div>
+      <div class="anchor bl" id="anchorBL">休闲 · 严肃</div>
+      <div class="anchor br" id="anchorBR">休闲 · 俏皮</div>
+      <div class="cursor-dot" id="cursor" style="left:50%; top:50%"></div>
+      <div class="coords" id="coords">x: 0.50 · y: 0.50</div>
+      <div class="axis-label axis-x" id="axisXLabel">← X →</div>
+      <div class="axis-label axis-y" id="axisYLabel">← Y →</div>
+    </div>
+    <div style="margin-top:14px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); letter-spacing:0.1em; text-align:center">
+      <span id="modeHint">拖动光标探索 · 切换到 Divergent 模式让系统帮你发现方向</span>
+    </div>
+  </section>
+
+  <!-- 右:输出面板(切换两种模式) -->
+  <section class="right-panel">
+    <div class="axes-config">
+      <div class="axis-input">
+        <label>X 轴(左 / 右)</label>
+        <input id="xAxisInput" value="休闲 / 专业" />
+      </div>
+      <div class="axis-input">
+        <label>Y 轴(下 / 上)</label>
+        <input id="yAxisInput" value="严肃 / 俏皮" />
+      </div>
+    </div>
+
+    <div class="topic-input">
+      <label class="panel-label" style="margin-bottom:6px">Subject · 主题</label>
+      <textarea id="topicInput">写一段关于"周一早晨喝咖啡"的文案(不超过40字)</textarea>
+    </div>
+
+    <!-- === Topography 模式 === -->
+    <div id="topoMode">
+      <div class="panel-label">Output at Current Position</div>
+      <div class="output-box">
+        <div class="loading-bar" id="loadingBar"></div>
+        <div class="output-text" id="output">移动左侧光标以生成内容 · 不同位置对应不同风格。</div>
+        <div class="output-meta">
+          <span id="styleDescriptor">style: —</span>
+          <span id="genTime">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- === Divergent 模式 === -->
+    <div id="divergeMode" class="hidden">
+      <div class="divergent-container">
+        <div class="divergent-header">
+          <span class="prompt-text">Better 1 or Better 2?</span>
+          <span class="round-counter" id="roundCounter">round 1</span>
+        </div>
+        <div class="variant-grid" id="variantGrid">
+          <!-- 动态生成 -->
+        </div>
+        <div class="divergent-controls">
+          <button class="ctrl-btn" id="regenBtn">↻ 再来一轮</button>
+          <button class="ctrl-btn" id="widerBtn">⤢ 扩大差异</button>
+          <button class="ctrl-btn primary" id="confirmBtn">✓ 回到地形图精修</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<div class="history-bar">
+  <span class="history-label">Trail</span>
+  <div id="historyList" style="display:flex; gap:8px;">
+    <span class="history-item current">start · 0.50, 0.50</span>
+  </div>
+</div>
+
+<footer>
+  Topography = 导航已知方向 · Divergent = 发现未知方向 · 两者结合 = 在不知道自己想要什么时也能找到它
+</footer>
+
+<script>
+// ========== 状态 ==========
+const topo = document.getElementById('topo');
+const cursor = document.getElementById('cursor');
+const coords = document.getElementById('coords');
+const output = document.getElementById('output');
+const loadingBar = document.getElementById('loadingBar');
+const styleDescriptor = document.getElementById('styleDescriptor');
+const genTime = document.getElementById('genTime');
+const topicInput = document.getElementById('topicInput');
+const xAxisInput = document.getElementById('xAxisInput');
+const yAxisInput = document.getElementById('yAxisInput');
+const modeHint = document.getElementById('modeHint');
+const variantGrid = document.getElementById('variantGrid');
+const roundCounter = document.getElementById('roundCounter');
+const historyList = document.getElementById('historyList');
+const trailSvg = document.getElementById('trailSvg');
+
+let pos = { x: 0.5, y: 0.5 };
+let isDragging = false;
+let debounceTimer = null;
+let lastRequestId = 0;
+const cache = new Map();
+let currentMode = 'topo';
+let divergentRound = 0;
+let divergentSpread = 0.25;  // 发散半径
+let trail = [{ x: 0.5, y: 0.5, label: 'start', method: 'init' }];
+let probeDots = [];
+
+// ========== 模式切换 ==========
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    document.getElementById('topoMode').classList.toggle('hidden', currentMode !== 'topo');
+    document.getElementById('divergeMode').classList.toggle('hidden', currentMode !== 'diverge');
+    clearProbeDots();
+    if (currentMode === 'diverge') {
+      modeHint.textContent = '观察右侧变体 · 光标自动跳到被选择位置';
+      startDivergentRound();
+    } else {
+      modeHint.textContent = '拖动光标探索 · 切换到 Divergent 让系统帮你发现方向';
+      scheduleGenerate();
+    }
+  });
+});
+
+document.getElementById('regenBtn').addEventListener('click', () => {
+  divergentSpread = Math.max(0.12, divergentSpread * 0.9);
+  startDivergentRound();
+});
+document.getElementById('widerBtn').addEventListener('click', () => {
+  divergentSpread = Math.min(0.45, divergentSpread * 1.4);
+  startDivergentRound();
+});
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  document.querySelector('.mode-btn[data-mode="topo"]').click();
+});
+
+// ========== 锚点与轴标签 ==========
+function updateAnchors() {
+  const [xLeft, xRight] = xAxisInput.value.split('/').map(s => s.trim());
+  const [yBottom, yTop] = yAxisInput.value.split('/').map(s => s.trim());
+  document.getElementById('anchorTL').textContent = `${xLeft} · ${yTop}`;
+  document.getElementById('anchorTR').textContent = `${xRight} · ${yTop}`;
+  document.getElementById('anchorBL').textContent = `${xLeft} · ${yBottom}`;
+  document.getElementById('anchorBR').textContent = `${xRight} · ${yBottom}`;
+  document.getElementById('axisXLabel').textContent = `← ${xLeft} | ${xRight} →`;
+  document.getElementById('axisYLabel').textContent = `← ${yBottom} | ${yTop} →`;
+}
+xAxisInput.addEventListener('input', updateAnchors);
+yAxisInput.addEventListener('input', updateAnchors);
+updateAnchors();
+
+// ========== 地形图交互 ==========
+function setCursorPos(x, y, animate = false) {
+  pos = { x, y };
+  if (!animate) {
+    cursor.style.transition = 'background 0.2s';
+    requestAnimationFrame(() => { cursor.style.transition = ''; });
+  }
+  cursor.style.left = `${x * 100}%`;
+  cursor.style.top = `${(1 - y) * 100}%`;
+  coords.textContent = `x: ${x.toFixed(2)} · y: ${y.toFixed(2)}`;
+}
+
+function updatePosFromEvent(e) {
+  if (currentMode !== 'topo') return;
+  const rect = topo.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  let x = (clientX - rect.left) / rect.width;
+  let y = 1 - (clientY - rect.top) / rect.height;
+  x = Math.max(0, Math.min(1, x));
+  y = Math.max(0, Math.min(1, y));
+  setCursorPos(x, y);
+  scheduleGenerate();
+}
+
+topo.addEventListener('mousedown', (e) => { isDragging = true; updatePosFromEvent(e); });
+topo.addEventListener('mousemove', (e) => { if (isDragging) updatePosFromEvent(e); });
+window.addEventListener('mouseup', () => { isDragging = false; });
+topo.addEventListener('click', updatePosFromEvent);
+topo.addEventListener('touchstart', (e) => { isDragging = true; updatePosFromEvent(e); e.preventDefault(); });
+topo.addEventListener('touchmove', (e) => { if (isDragging) updatePosFromEvent(e); e.preventDefault(); });
+topo.addEventListener('touchend', () => { isDragging = false; });
+
+// ========== Prompt 构造 ==========
+function buildStyleDescriptor(p = pos) {
+  const [xLeft, xRight] = xAxisInput.value.split('/').map(s => s.trim());
+  const [yBottom, yTop] = yAxisInput.value.split('/').map(s => s.trim());
+  const xStrength = p.x < 0.5 ? (0.5 - p.x) * 2 : (p.x - 0.5) * 2;
+  const yStrength = p.y < 0.5 ? (0.5 - p.y) * 2 : (p.y - 0.5) * 2;
+  const xWord = p.x < 0.5 ? xLeft : xRight;
+  const yWord = p.y < 0.5 ? yBottom : yTop;
+  const levels = ['略微', '中等', '强烈', '极度'];
+  const xLevel = levels[Math.min(3, Math.floor(xStrength * 4))];
+  const yLevel = levels[Math.min(3, Math.floor(yStrength * 4))];
+  return { descriptor: `${xLevel}${xWord} · ${yLevel}${yWord}`, xWord, yWord, xStrength, yStrength };
+}
+
+async function callClaude(prompt, maxTokens = 200) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  const data = await response.json();
+  return data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+
+// ========== Topography 模式:单点生成 ==========
+function scheduleGenerate() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(generate, 400);
+}
+
+async function generate() {
+  if (currentMode !== 'topo') return;
+  const topic = topicInput.value.trim();
+  if (!topic) return;
+
+  const { descriptor, xWord, yWord, xStrength, yStrength } = buildStyleDescriptor();
+  const gridX = Math.round(pos.x * 10) / 10;
+  const gridY = Math.round(pos.y * 10) / 10;
+  const cacheKey = `${topic}|${xAxisInput.value}|${yAxisInput.value}|${gridX},${gridY}`;
+
+  styleDescriptor.textContent = `style: ${descriptor}`;
+
+  if (cache.has(cacheKey)) {
+    output.textContent = cache.get(cacheKey);
+    genTime.textContent = 'cached · 0ms';
+    return;
+  }
+
+  const requestId = ++lastRequestId;
+  cursor.classList.add('loading');
+  loadingBar.classList.add('active');
+  const t0 = performance.now();
+
+  const prompt = `你是文案风格探索工具。严格按风格参数生成,直接输出文本,不要任何解释、引号或前后缀。
+
+主题:${topic}
+
+风格定位:
+- X 轴(${xAxisInput.value}):"${xWord}",强度 ${(xStrength * 100).toFixed(0)}%
+- Y 轴(${yAxisInput.value}):"${yWord}",强度 ${(yStrength * 100).toFixed(0)}%
+综合:${descriptor}
+
+要求:严格符合定位,强度越高风格越鲜明。只输出正文,不超过40字。`;
+
+  try {
+    const text = await callClaude(prompt);
+    if (requestId !== lastRequestId) return;
+    cache.set(cacheKey, text);
+    output.textContent = text;
+    genTime.textContent = `${Math.round(performance.now() - t0)}ms`;
+  } catch (err) {
+    output.textContent = `[错误] ${err.message}`;
+  } finally {
+    if (requestId === lastRequestId) {
+      cursor.classList.remove('loading');
+      loadingBar.classList.remove('active');
+    }
+  }
+}
+
+// ========== Divergent 模式:多点对比 ==========
+
+// 以当前 pos 为中心,在 2D 空间中选 4 个方向采样
+function getVariantPositions() {
+  // 四个方向:X+ / X- / Y+ / Y-(纯方向偏移)
+  // 或者选对角:++ / -- / +- / -+(组合偏移)
+  // 这里混合使用:两个正交方向 + 两个对角方向,提高多样性
+  const s = divergentSpread;
+  const dirs = [
+    { dx: -s, dy: +s*0.3, tag: '偏左 + 轻上' },
+    { dx: +s, dy: +s*0.3, tag: '偏右 + 轻上' },
+    { dx: -s*0.3, dy: -s, tag: '偏下 + 轻左' },
+    { dx: +s*0.3, dy: -s, tag: '偏下 + 轻右' },
+  ];
+  return dirs.map(d => ({
+    x: Math.max(0.05, Math.min(0.95, pos.x + d.dx)),
+    y: Math.max(0.05, Math.min(0.95, pos.y + d.dy)),
+    tag: d.tag
+  }));
+}
+
+function clearProbeDots() {
+  probeDots.forEach(d => d.remove());
+  probeDots = [];
+}
+
+function showProbeDots(positions) {
+  clearProbeDots();
+  positions.forEach((p, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'probe-dot';
+    dot.style.left = `${p.x * 100}%`;
+    dot.style.top = `${(1 - p.y) * 100}%`;
+    dot.dataset.idx = i;
+    topo.appendChild(dot);
+    probeDots.push(dot);
+  });
+}
+
+async function startDivergentRound() {
+  divergentRound++;
+  roundCounter.textContent = `round ${divergentRound} · spread ${(divergentSpread * 100).toFixed(0)}%`;
+
+  const topic = topicInput.value.trim();
+  if (!topic) return;
+
+  const positions = getVariantPositions();
+  showProbeDots(positions);
+
+  // 先把卡片放出来,loading 状态
+  const labels = ['A', 'B', 'C', 'D'];
+  variantGrid.innerHTML = positions.map((p, i) => {
+    const d = buildStyleDescriptor(p);
+    return `
+      <div class="variant-card loading" data-idx="${i}" data-label="${labels[i]}">
+        <div class="variant-direction">${d.descriptor}</div>
+        <div class="variant-text" data-idx="${i}">生成中 · · ·</div>
+        <div class="variant-actions">
+          <button class="v-btn" data-action="pick" data-idx="${i}">选这个</button>
+          <button class="v-btn" data-action="explore" data-idx="${i}">在此周围继续发散</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 并行生成 4 个变体
+  const results = await Promise.all(positions.map(async (p) => {
+    const d = buildStyleDescriptor(p);
+    const prompt = `你是文案风格探索工具。严格按风格参数生成,直接输出,不要引号或前后缀。
+
+主题:${topic}
+风格定位:
+- ${xAxisInput.value}:"${d.xWord}" ${(d.xStrength*100).toFixed(0)}%
+- ${yAxisInput.value}:"${d.yWord}" ${(d.yStrength*100).toFixed(0)}%
+综合:${d.descriptor}
+
+只输出正文,不超过40字。`;
+    try {
+      return await callClaude(prompt);
+    } catch (err) {
+      return `[错误] ${err.message}`;
+    }
+  }));
+
+  // 填入结果
+  results.forEach((text, i) => {
+    const card = variantGrid.querySelector(`.variant-card[data-idx="${i}"]`);
+    if (card) {
+      card.classList.remove('loading');
+      card.querySelector('.variant-text').textContent = text;
+    }
+  });
+
+  // 绑定点击
+  variantGrid.querySelectorAll('.v-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      const action = btn.dataset.action;
+      const targetPos = positions[idx];
+
+      if (action === 'pick') {
+        // 跳转到该位置,回到 topo 模式
+        setCursorPos(targetPos.x, targetPos.y, true);
+        addTrail(targetPos.x, targetPos.y, `pick ${labels[idx]}`, 'divergent');
+        document.querySelector('.variant-card[data-idx="'+idx+'"]').classList.add('chosen');
+        setTimeout(() => {
+          document.querySelector('.mode-btn[data-mode="topo"]').click();
+          output.textContent = results[idx];
+          const d = buildStyleDescriptor(targetPos);
+          styleDescriptor.textContent = `style: ${d.descriptor}`;
+          genTime.textContent = 'from divergent';
+        }, 300);
+      } else if (action === 'explore') {
+        // 以该位置为新中心,继续发散
+        setCursorPos(targetPos.x, targetPos.y, true);
+        addTrail(targetPos.x, targetPos.y, `explore ${labels[idx]}`, 'divergent');
+        divergentSpread = Math.max(0.12, divergentSpread * 0.75);
+        setTimeout(() => startDivergentRound(), 300);
+      }
+    });
+  });
+}
+
+// ========== 轨迹与历史 ==========
+function addTrail(x, y, label, method) {
+  trail.push({ x, y, label, method });
+  renderTrail();
+  renderHistory();
+}
+
+function renderTrail() {
+  // SVG 连线
+  const rect = topo.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  let pathD = '';
+  trail.forEach((p, i) => {
+    const cx = p.x * w;
+    const cy = (1 - p.y) * h;
+    pathD += (i === 0 ? `M ${cx} ${cy}` : ` L ${cx} ${cy}`);
+  });
+  trailSvg.innerHTML = `
+    <path d="${pathD}" stroke="rgba(255,107,53,0.3)" stroke-width="1.5" fill="none" stroke-dasharray="3,3"/>
+    ${trail.slice(0, -1).map(p =>
+      `<circle cx="${p.x * w}" cy="${(1 - p.y) * h}" r="3" fill="rgba(245,241,232,0.3)"/>`
+    ).join('')}
+  `;
+}
+
+function renderHistory() {
+  historyList.innerHTML = trail.map((p, i) => {
+    const isLast = i === trail.length - 1;
+    return `<span class="history-item ${isLast ? 'current' : ''}" data-idx="${i}">
+      ${p.label} · ${p.x.toFixed(2)}, ${p.y.toFixed(2)}
+    </span>`;
+  }).join('');
+  historyList.querySelectorAll('.history-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.idx);
+      const p = trail[idx];
+      setCursorPos(p.x, p.y, true);
+      if (currentMode === 'topo') scheduleGenerate();
+    });
+  });
+}
+
+// 主题变更时清缓存
+topicInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    cache.clear();
+    if (currentMode === 'topo') generate();
+  }, 800);
+});
+
+// 窗口 resize 时重绘轨迹
+window.addEventListener('resize', renderTrail);
+
+// 初始化
+setTimeout(() => {
+  generate();
+  renderTrail();
+}, 500);
+
+</script>
+
+</body>
+</html>

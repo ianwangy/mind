@@ -1,0 +1,18 @@
+# Excluded: mobile app source (kept local only)
+mobile-app/
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Node (in case any node tooling appears at root later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
