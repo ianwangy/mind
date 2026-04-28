@@ -107,7 +107,7 @@ Research-quality prototypes. Expect rough edges, inline mocks, and explicit note
 
 ### License
 
-No license file yet — all rights reserved by the author until one is added. Open an issue if you'd like to use any part of this.
+[MIT](LICENSE) © 2026 ianwangy
 
 ---
 
@@ -188,4 +188,4 @@ URL 参数 `?scenario=<id>` 决定加载 `scenarios/` 下哪个文件，不传�
 
 ### 许可
 
-暂无 LICENSE 文件，作者保留所有权利。如需引用或复用，请先开 issue。
+[MIT 协议](LICENSE) © 2026 ianwangy
